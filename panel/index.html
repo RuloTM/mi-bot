@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel SaaS - Pedidos</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      color: #6b7280;
+    }
+
+    .user-box {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      min-width: 280px;
+    }
+
+    .user-box .label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .user-box .value {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #111827;
+      color: white;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .paid {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .shipped {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .completed {
+      background: #e9d5ff;
+      color: #6b21a8;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button, a.action-link {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-paid {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-shipped {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-wa {
+      background: #25d366;
+      color: white;
+    }
+
+    .btn-logout {
+      background: #111827;
+      color: white;
+      width: 100%;
+    }
+
+    .btn-login {
+      background: #111827;
+      color: white;
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .empty {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-card h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .login-card p {
+      margin: 0 0 20px;
+      color: #6b7280;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: #111827;
+    }
+
+    .error-box {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+
+    .loading-box {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1000px) {
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .table-card {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 1200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="loginScreen" class="login-screen hidden">
+    <div class="login-card">
+      <h1>Iniciar sesión</h1>
+      <p>Accede al panel de tu negocio</p>
+
+      <div id="loginError" class="error-box hidden"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Correo</label>
+          <input id="email" type="email" placeholder="tu@negocio.com" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input id="password" type="password" placeholder="********" required />
+        </div>
+
+        <button id="loginBtn" class="btn-login" type="submit">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen" class="hidden">
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Panel de Pedidos</h1>
+          <p>Vista operativa del bot SaaS</p>
+        </div>
+
+        <div class="user-box">
+          <div class="label">Usuario</div>
+          <div id="userEmail" class="value">-</div>
+
+          <div class="label">Business ID</div>
+          <div id="businessId" class="value">-</div>
+
+          <div class="label">Rol</div>
+          <div id="userRole" class="value">-</div>
+
+          <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="card">
+          <h3>Total pedidos</h3>
+          <p id="totalOrders">0</p>
+        </div>
+        <div class="card">
+          <h3>Total ventas</h3>
+          <p id="totalSales">$0</p>
+        </div>
+        <div class="card">
+          <h3>Pendientes</h3>
+          <p id="totalPending">0</p>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Producto</th>
+              <th>Color</th>
+              <th>Cantidad</th>
+              <th>Ciudad</th>
+              <th>Total</th>
+              <th>Pago</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTable"></tbody>
+        </table>
+        <div id="emptyState" class="empty" style="display:none;">
+          No hay pedidos todavía.
+        </div>
+      </div>
+
+      <div class="table-card" style="margin-top:24px;">
+        <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
+          <h3 style="margin:0;">Conversación del cliente</h3>
+        </div>
+        <div id="messagesBox" style="padding:16px;">
+          Selecciona un pedido para ver la conversación.
+        </div>
+      </div>
+
+      <div class="table-card" style="margin-top:24px;">
+        <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3 style="margin:0;">Catálogo del negocio</h3>
+        </div>
+
+        <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
+          <form id="productForm" style="display:flex; gap:12px; flex-wrap:wrap;">
+            <input id="productName" type="text" placeholder="Nombre del producto" style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:240px;" required />
+            <input id="productPrice" type="number" step="0.01" placeholder="Precio" style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:140px;" required />
+            <button type="submit" class="btn-paid">Guardar producto</button>
+          </form>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Activo</th>
+              <th>Creado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="productsTable"></tbody>
+        </table>
+
+        <div id="productsEmptyState" class="empty" style="display:none;">
+          No hay productos todavía.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loadingScreen" class="loading-box">
+    Cargando panel...
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://gidnjvrrjdqreovvleti.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_j3rdbMWnZTG2PzEpfXS_SQ_O1uun8gI";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabase = supabase;
+    const loginScreen = document.getElementById("loginScreen");
+    const appScreen = document.getElementById("appScreen");
+    const loadingScreen = document.getElementById("loadingScreen");
+    const loginForm = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
+    const loginBtn = document.getElementById("loginBtn");
+    let currentAccessToken = null;
+
+    function showLogin() {
+      loadingScreen.classList.add("hidden");
+      appScreen.classList.add("hidden");
+      loginScreen.classList.remove("hidden");
+    }
+
+    function showApp() {
+      loadingScreen.classList.add("hidden");
+      loginScreen.classList.add("hidden");
+      appScreen.classList.remove("hidden");
+    }
+
+    function showLoading() {
+      loginScreen.classList.add("hidden");
+      appScreen.classList.add("hidden");
+      loadingScreen.classList.remove("hidden");
+    }
+
+    function setLoginError(message) {
+      if (!message) {
+        loginError.classList.add("hidden");
+        loginError.textContent = "";
+        return;
+      }
+
+      loginError.textContent = message;
+      loginError.classList.remove("hidden");
+    }
+
+    async function getAccessToken() {
+  return currentAccessToken;
+}
+
+async function authFetch(url, options = {}) {
+  console.log("authFetch ->", url);
+
+  const token = await getAccessToken();
+  console.log("token existe:", !!token);
+
+  if (!token) {
+    throw new Error("No hay sesión activa");
+  }
+
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`
+  };
+
+  const res = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  console.log("respuesta", url, res.status);
+
+  return res;
+}
+    function formatCurrency(value) {
+      return new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      }).format(value || 0);
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      return date.toLocaleString("es-MX");
+    }
+
+    function getStatusClass(status) {
+      if (status === "pending") return "status pending";
+      if (status === "paid") return "status paid";
+      if (status === "shipped") return "status shipped";
+      if (status === "completed") return "status completed";
+      return "status";
+    }
+
+    async function loadMe() {
+      const res = await authFetch("/me");
+
+      if (!res.ok) {
+        throw new Error("No se pudo cargar /me");
+      }
+
+      const data = await res.json();
+
+      document.getElementById("userEmail").textContent =
+        data.user?.email || data.profile?.email || "-";
+
+      document.getElementById("businessId").textContent =
+        data.profile?.business_id || "-";
+
+      document.getElementById("userRole").textContent =
+        data.profile?.role || "-";
+    }
+
+    async function updateStatus(orderId, newStatus) {
+      try {
+        const res = await authFetch(`/orders/${orderId}/status`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "No se pudo actualizar el estado");
+        }
+
+        await loadOrders();
+      } catch (error) {
+        console.error("Error actualizando estado:", error);
+        alert(error.message || "Error actualizando estado");
+      }
+    }
+
+    async function loadMessages(customerId) {
+      try {
+        const res = await authFetch(`/customers/${customerId}/messages`);
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "No se pudieron cargar los mensajes");
+        }
+
+        const messages = await res.json();
+
+        const box = document.getElementById("messagesBox");
+
+        if (!Array.isArray(messages) || messages.length === 0) {
+          box.innerHTML = "No hay mensajes para este cliente.";
+          return;
+        }
+
+        let html = "";
+
+        messages.forEach(msg => {
+          const align = msg.role === "user" ? "right" : "left";
+          const bg = msg.role === "user" ? "#dcfce7" : "#f3f4f6";
+
+          html += `
+            <div style="text-align:${align}; margin-bottom:12px;">
+              <div style="
+                display:inline-block;
+                max-width:70%;
+                background:${bg};
+                padding:12px;
+                border-radius:12px;
+                text-align:left;
+              ">
+                <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">
+                  ${msg.role}
+                </div>
+                <div>${msg.content || ""}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        box.innerHTML = html;
+      } catch (error) {
+        console.error("Error cargando mensajes:", error);
+        document.getElementById("messagesBox").innerHTML =
+          "No se pudieron cargar los mensajes.";
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const res = await authFetch("/orders");
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || "No se pudieron cargar los pedidos");
+        }
+
+        const orders = await res.json();
+
+        const table = document.getElementById("ordersTable");
+        const emptyState = document.getElementById("emptyState");
+
+        table.innerHTML = "";
+        document.getElementById("messagesBox").innerHTML =
+          "Selecciona un pedido para ver la conversación.";
+
+        if (!Array.isArray(orders) || orders.length === 0) {
+          emptyState.style.display = "block";
+          document.getElementById("totalOrders").textContent = "0";
+          document.getElementById("totalSales").textContent = "$0";
+          document.getElementById("totalPending").textContent = "0";
+          return;
+        }
+
+        emptyState.style.display = "none";
+
+        let totalSales = 0;
+        let totalPending = 0;
+
+        orders.forEach(order => {
+          totalSales += Number(order.total || 0);
+          if (order.status === "pending") totalPending++;
+
+          const whatsapp = order.customers?.whatsapp || "";
+          const waLink = whatsapp ? `https://wa.me/${whatsapp}` : "#";
+
+          const row = document.createElement("tr");
+          row.style.cursor = "pointer";
+          row.onclick = () => loadMessages(order.customer_id);
+
+          row.innerHTML = `
+            <td>${order.full_name || ""}</td>
+            <td>${order.product || ""}</td>
+            <td>${order.color || ""}</td>
+            <td>${order.quantity || ""}</td>
+            <td>${order.city || ""}</td>
+            <td>${formatCurrency(order.total)}</td>
+            <td>${order.payment_method || ""}</td>
+            <td><span class="${getStatusClass(order.status)}">${order.status || ""}</span></td>
+            <td>${formatDate(order.created_at)}</td>
+            <td>
+              <div class="actions">
+                <button class="btn-paid" onclick="event.stopPropagation(); updateStatus('${order.id}', 'paid')">Pagado</button>
+                <button class="btn-shipped" onclick="event.stopPropagation(); updateStatus('${order.id}', 'shipped')">Enviado</button>
+                <a class="action-link btn-wa" href="${waLink}" target="_blank" onclick="event.stopPropagation()">WhatsApp</a>
+              </div>
+            </td>
+          `;
+
+          table.appendChild(row);
+        });
+
+        document.getElementById("totalOrders").textContent = orders.length;
+        document.getElementById("totalSales").textContent = formatCurrency(totalSales);
+        document.getElementById("totalPending").textContent = totalPending;
+      } catch (error) {
+        console.error("Error cargando pedidos:", error);
+        alert(error.message || "Error cargando pedidos");
+      }
+    }
+
+async function login(email, password) {
+  setLoginError("");
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Entrando...";
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    currentAccessToken = data.session?.access_token || null;
+
+    await initPanel();
+  } catch (error) {
+    console.error("Error login:", error);
+    setLoginError(error.message || "No se pudo iniciar sesión");
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Entrar";
+  }
+}
+
+    window.logout = async function logout() {
+      await supabase.auth.signOut();
+      showLogin();
+    };
+
+async function initPanel() {
+  showLoading();
+  console.log("initPanel iniciado");
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.session) {
+      showLogin();
+      return;
+    }
+
+    currentAccessToken = data.session.access_token;
+
+    await loadMe();
+    await loadOrders();
+    showApp();
+    await loadProducts();
+  } catch (error) {
+    console.error("Error iniciando panel:", error);
+    setLoginError(error.message || "No se pudo cargar el panel");
+    showLogin();
+  }
+}
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      await login(email, password);
+    });
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === "SIGNED_OUT") {
+    currentAccessToken = null;
+    showLogin();
+    return;
+  }
+
+  if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+    try {
+      currentAccessToken = session.access_token;
+      await loadMe();
+      await loadOrders();
+      showApp();
+      await loadProducts();
+    } catch (error) {
+      console.error("Error tras auth change:", error);
+      setLoginError(error.message || "No se pudo cargar el panel");
+      showLogin();
+    }
+  }
+});
+
+async function loadProducts() {
+  const table = document.getElementById("productsTable");
+  const emptyState = document.getElementById("productsEmptyState");
+
+  try {
+    const res = await authFetch("/products");
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "No se pudieron cargar los productos");
+    }
+
+    const products = await res.json();
+
+    table.innerHTML = "";
+
+    if (!Array.isArray(products) || products.length === 0) {
+      emptyState.style.display = "block";
+      return;
+    }
+
+    emptyState.style.display = "none";
+
+    products.forEach(product => {
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${product.name || ""}</td>
+        <td>${formatCurrency(product.price || 0)}</td>
+        <td>${product.active ? "Sí" : "No"}</td>
+        <td>${formatDate(product.created_at)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-shipped" onclick="toggleProduct('${product.id}')">
+              ${product.active ? "Desactivar" : "Activar"}
+            </button>
+          </div>
+        </td>
+      `;
+
+      table.appendChild(row);
+    });
+  } catch (error) {
+    console.error("Error cargando productos:", error);
+    table.innerHTML = "";
+    emptyState.style.display = "block";
+  }
+}
+
+async function createProduct(name, price) {
+  const res = await authFetch("/products", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      price,
+      active: true
+    })
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "No se pudo crear el producto");
+  }
+
+  return res.json();
+}
+
+window.toggleProduct = async function toggleProduct(productId) {
+  try {
+    const res = await authFetch(`/products/${productId}/toggle`, {
+      method: "POST"
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "No se pudo cambiar el estatus");
+    }
+
+    await loadProducts();
+  } catch (error) {
+    console.error("Error toggle producto:", error);
+    alert(error.message || "Error cambiando estatus");
+  }
+};
+
+const productForm = document.getElementById("productForm");
+
+if (productForm) {
+  productForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("productName").value.trim();
+    const price = document.getElementById("productPrice").value;
+
+    try {
+      await createProduct(name, price);
+      document.getElementById("productName").value = "";
+      document.getElementById("productPrice").value = "";
+      await loadProducts();
+    } catch (error) {
+      console.error("Error creando producto:", error);
+      alert(error.message || "Error creando producto");
+    }
+  });
+}
+
+
+    initPanel();
+  </script>
+</body>
+</html>
