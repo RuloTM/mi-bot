@@ -57,7 +57,8 @@ async function requireAuth(req, res, next) {
 }
 
 app.get("/webhook", (req, res) => {
-  const VERIFY_TOKEN = "tubotmx_token_123";
+    const VERIFY_TOKEN = "tubotmx_2026"; 
+	
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -152,24 +153,24 @@ const wantsCatalog =
   textLower.includes("qué vendes") ||
   textLower.includes("menu") ||
   textLower.includes("menú");
+    
 
 if (wantsCatalog) {
+  console.log("🔥 Entrando a catálogo");
+
   const products = await getBusinessProducts(business.id);
-  const catalogMessage = buildCatalogMessage(products);
 
-  await saveMessage(
-    business.id,
-    customer.id,
-    "assistant",
-    catalogMessage
-  );
+  console.log("📦 Productos:", products);
 
-  
-  await enviarWhatsApp(from, catalogMessage, business);
+  for (const producto of products) {
+    console.log("📸 Enviando:", producto.name, producto.image_url);
+    await enviarImagenWhatsApp(from, producto, business);
+  }
+
   return res.sendStatus(200);
 }
-    const respuesta = await procesarMensaje(from, text, business.prompt);
 
+const respuesta = await procesarMensaje(from, text, business.prompt);
     console.log("🤖 WhatsApp OUT:", respuesta);
 
     await saveMessage(
@@ -296,7 +297,7 @@ async function getProductPrice(businessId, productName) {
 async function getBusinessProducts(businessId) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, active")
+    .select("id, name, price, image_url, active")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("created_at", { ascending: false });
@@ -557,6 +558,41 @@ async function enviarWhatsApp(to, texto, business) {
     }
   );
 }
+
+async function enviarImagenWhatsApp(to, producto, business) {
+  const token = business.access_token;
+  const phoneNumberId = business.phone_number_id;
+
+  if (!token || !phoneNumberId) {
+    throw new Error("Falta configuración de WhatsApp");
+  }
+
+  if (!producto.image_url) {
+    console.log("⚠️ Producto sin imagen:", producto.name);
+    return;
+  }
+
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      type: "image",
+      image: {
+        link: producto.image_url,
+        caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN`
+      }
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
+
+
 
 async function procesarMensaje(clienteId, mensaje, promptNegocio = PERFIL_NEGOCIO) {
   const state = getClientState(clienteId);
