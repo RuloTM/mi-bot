@@ -152,6 +152,16 @@ En breve te contactaremos para continuar con el pedido.`;
 
 const textLower = text.toLowerCase().trim();
 
+if (textLower === "1") {
+  await enviarWhatsApp(
+    from,
+    "Perfecto 🙌 Envíame:\n1) Nombre completo\n2) Dirección\n3) Ciudad",
+    business
+  );
+
+  return res.sendStatus(200);
+}
+
 const wantsCatalog =
   textLower === "catalogo" ||
   textLower === "catálogo" ||
@@ -594,8 +604,11 @@ async function enviarImagenWhatsApp(to, producto, business) {
       type: "image",
       image: {
         link: producto.image_url,
-        caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN`
-      }
+
+caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+
+👉 Responde *1* para comprar`
+              }
     },
     {
       headers: {
