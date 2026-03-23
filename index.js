@@ -489,7 +489,6 @@ if (
   t.includes("confirmar") ||
   t.includes("sí confirmo") ||
   t.includes("si confirmo") ||
-  t === "1" ||
   t === "si" ||
   t === "sí" ||
   t === "ok" ||
