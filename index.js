@@ -152,6 +152,55 @@ En breve te contactaremos para continuar con el pedido.`;
 
 const textLower = text.toLowerCase().trim();
 
+const wantsCatalog =
+  textLower.includes("catalogo") ||
+  textLower.includes("catálogo") ||
+  textLower.includes("productos") ||
+  textLower.includes("qué vendes") ||
+  textLower.includes("que vendes") ||
+  textLower.includes("qué tienes") ||
+  textLower.includes("que tienes") ||
+  textLower.includes("menu") ||
+  textLower.includes("menú");
+
+if (wantsCatalog) {
+  const productos = await getProductos(business.id);
+
+  if (!productos.length) {
+    await enviarWhatsApp(
+      from,
+      "Aún no hay productos disponibles.",
+      business
+    );
+    return res.sendStatus(200);
+  }
+
+  for (const producto of productos) {
+    if (producto.image_url) {
+      await enviarImagenWhatsApp(
+        from,
+        producto.image_url,
+        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+
+👉 Responde 1 para comprar`,
+        business
+      );
+    } else {
+      await enviarWhatsApp(
+        from,
+        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+
+👉 Responde 1 para comprar`,
+        business
+      );
+    }
+  }
+
+  return res.sendStatus(200);
+}
+
+
+
 if (textLower === "1") {
   await enviarWhatsApp(
     from,
@@ -161,6 +210,9 @@ if (textLower === "1") {
 
   return res.sendStatus(200);
 }
+
+
+
 
 const wantsCatalog =
   textLower === "catalogo" ||
