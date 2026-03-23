@@ -115,6 +115,15 @@ if (detectedProduct) {
       console.log("✅ Detecté confirmación de pedido");
       console.log("🧾 Perfil actual:", state.perfil);
 
+if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
+  await enviarWhatsApp(
+    from,
+    "Antes de confirmar necesito tu nombre completo y dirección de entrega.",
+    business
+  );
+  return res.sendStatus(200);
+}
+
       const pedido = await saveOrder(
         business.id,
         customer.id,
@@ -465,14 +474,19 @@ function extractPerfil(perfil, texto) {
     perfil.direccion = texto.trim();
   }
 
-  if (
-    t.includes("confirmo") ||
-    t.includes("confirmar") ||
-    t.includes("sí confirmo") ||
-    t.includes("si confirmo")
-  ) {
-    perfil.confirmado = true;
-  }
+if (
+  t.includes("confirmo") ||
+  t.includes("confirmar") ||
+  t.includes("sí confirmo") ||
+  t.includes("si confirmo") ||
+  t === "1" ||
+  t === "si" ||
+  t === "sí" ||
+  t === "ok" ||
+  t === "va"
+) {
+  perfil.confirmado = true;
+}
 
   if (!perfil.nombre) {
     const contieneNumero = /\d/.test(texto);
