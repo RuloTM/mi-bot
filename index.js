@@ -101,7 +101,7 @@ state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
 
 // NUEVO: detectar producto del catálogo
-const products = await getBusinessProducts(business.id);
+const productos = await getBusinessProducts(business.id);
 const detectedProduct = findProductFromText(products, text);
 
 if (detectedProduct) {
@@ -111,6 +111,97 @@ if (detectedProduct) {
 
     await saveMessage(business.id, customer.id, "user", text);
 
+// 1) Catálogo primero
+
+const textLower = text.toLowerCase().trim();
+
+const wantsCatalog =
+  textLower.includes("catalogo") ||
+  textLower.includes("catálogo") ||
+  textLower.includes("productos") ||
+  textLower.includes("qué vendes") ||
+  textLower.includes("que vendes") ||
+  textLower.includes("qué tienes") ||
+  textLower.includes("que tienes") ||
+  textLower.includes("menu") ||
+  textLower.includes("menú");
+
+if (wantsCatalog) {
+  const productos = await getProductos(business.id);
+
+  if (!productos.length) {
+    await enviarWhatsApp(
+      from,
+      "Aún no hay productos disponibles.",
+      business
+    );
+    return res.sendStatus(200);
+  }
+
+  for (const producto of productos) {
+    if (producto.image_url) {
+      await enviarImagenWhatsApp(
+        from,
+        producto,business
+      );
+    } else {
+      await enviarWhatsApp(
+        from,
+        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+
+👉 Responde 1 para comprar`,
+        business
+      );
+    }
+  }
+
+  return res.sendStatus(200);
+}
+
+
+// 2) Cliente quiere comprar
+if (textLower === "1") {
+  await enviarWhatsApp(
+    from,
+    "Perfecto 🙌 Envíame:\n1) Nombre completo\n2) Dirección\n3) Ciudad",
+    business
+  );
+
+  return res.sendStatus(200);
+}
+
+
+// 3) Si ya estamos capturando datos y ya mandó nombre + dirección, mostrar resumen
+if (
+  state.etapa === "capturando_datos" &&
+  state.perfil.nombre &&
+  state.perfil.direccion
+) {
+  state.etapa = "confirmacion";
+
+  const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
+  const subtotal = total - shippingCost;
+
+  await enviarWhatsApp(
+    from,
+    `Perfecto 🙌
+
+Tu pedido:
+📦 ${state.perfil.producto || "Producto"}
+💰 $${Number(subtotal).toFixed(2)} MXN
+
+🚚 Envío: $${Number(shippingCost).toFixed(2)} MXN
+
+TOTAL: $${Number(total).toFixed(2)} MXN
+
+¿Confirmas tu pedido? Responde: confirmo`,
+    business
+  );
+
+  return res.sendStatus(200);
+}
+
+// 4) Confirmación final
     if (state.perfil.confirmado) {
       console.log("✅ Detecté confirmación de pedido");
       console.log("🧾 Perfil actual:", state.perfil);
@@ -149,97 +240,6 @@ En breve te contactaremos para continuar con el pedido.`;
         return res.sendStatus(200);
       }
     }
-
-const textLower = text.toLowerCase().trim();
-
-const wantsCatalog =
-  textLower.includes("catalogo") ||
-  textLower.includes("catálogo") ||
-  textLower.includes("productos") ||
-  textLower.includes("qué vendes") ||
-  textLower.includes("que vendes") ||
-  textLower.includes("qué tienes") ||
-  textLower.includes("que tienes") ||
-  textLower.includes("menu") ||
-  textLower.includes("menú");
-
-if (wantsCatalog) {
-  const productos = await getProductos(business.id);
-
-  if (!productos.length) {
-    await enviarWhatsApp(
-      from,
-      "Aún no hay productos disponibles.",
-      business
-    );
-    return res.sendStatus(200);
-  }
-
-  for (const producto of productos) {
-    if (producto.image_url) {
-      await enviarImagenWhatsApp(
-        from,
-        producto.image_url,
-        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
-
-👉 Responde 1 para comprar`,
-        business
-      );
-    } else {
-      await enviarWhatsApp(
-        from,
-        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
-
-👉 Responde 1 para comprar`,
-        business
-      );
-    }
-  }
-
-  return res.sendStatus(200);
-}
-
-
-
-if (textLower === "1") {
-  await enviarWhatsApp(
-    from,
-    "Perfecto 🙌 Envíame:\n1) Nombre completo\n2) Dirección\n3) Ciudad",
-    business
-  );
-
-  return res.sendStatus(200);
-}
-
-
-
-
-const wantsCatalog =
-  textLower === "catalogo" ||
-  textLower === "catálogo" ||
-  textLower.includes("ver catalogo") ||
-  textLower.includes("ver catálogo") ||
-  textLower.includes("productos") ||
-  textLower.includes("que vendes") ||
-  textLower.includes("qué vendes") ||
-  textLower.includes("menu") ||
-  textLower.includes("menú");
-    
-
-if (wantsCatalog) {
-  console.log("🔥 Entrando a catálogo");
-
-  const products = await getBusinessProducts(business.id);
-
-  console.log("📦 Productos:", products);
-
-  for (const producto of products) {
-    console.log("📸 Enviando:", producto.name, producto.image_url);
-    await enviarImagenWhatsApp(from, producto, business);
-  }
-
-  return res.sendStatus(200);
-}
 
 const respuesta = await procesarMensaje(from, text, business.prompt);
     console.log("🤖 WhatsApp OUT:", respuesta);
@@ -541,10 +541,7 @@ if (
   t.includes("confirmar") ||
   t.includes("sí confirmo") ||
   t.includes("si confirmo") ||
-  t === "si" ||
-  t === "sí" ||
-  t === "ok" ||
-  t === "va"
+  
 ) {
   perfil.confirmado = true;
 }
