@@ -71,6 +71,7 @@ app.get("/webhook", (req, res) => {
   return res.sendStatus(403);
 });
 
+
 app.post("/webhook", async (req, res) => {
   try {
     const entry = req.body.entry?.[0];
@@ -82,6 +83,7 @@ app.post("/webhook", async (req, res) => {
     const from = message.from;
     const text = message.text?.body || "";
     const phoneNumberId = changes?.metadata?.phone_number_id;
+    const textLower = text.toLowerCase().trim();
 
     console.log("📩 WhatsApp IN:", from, text);
     console.log("📱 phone_number_id:", phoneNumberId);
@@ -93,98 +95,90 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
+    const customer = await getOrCreateCustomer(business.id, from);
 
-const customer = await getOrCreateCustomer(business.id, from);
+    const state = getClientState(`${business.id}:${from}`);
+    state.perfil = state.perfil || {};
 
-const state = getClientState(`${business.id}:${from}`);
-state.perfil = state.perfil || {};
-state.perfil = extractPerfil(state.perfil, text);
+    // Extraer datos del mensaje actual
+    state.perfil = extractPerfil(state.perfil, text);
 
-// NUEVO: detectar producto del catálogo
-const productos = await getBusinessProducts(business.id);
-const detectedProduct = findProductFromText(products, text);
+    // Detectar producto del catálogo
+    const productos = await getBusinessProducts(business.id);
+    const detectedProduct = findProductFromText(productos, text);
 
-if (detectedProduct) {
-  state.perfil.producto = detectedProduct.name;
-}
-
+    if (detectedProduct) {
+      state.perfil.producto = detectedProduct.name;
+    }
 
     await saveMessage(business.id, customer.id, "user", text);
 
-// 1) Catálogo primero
+    // 1) Catálogo primero
+    const wantsCatalog =
+      textLower.includes("catalogo") ||
+      textLower.includes("catálogo") ||
+      textLower.includes("productos") ||
+      textLower.includes("qué vendes") ||
+      textLower.includes("que vendes") ||
+      textLower.includes("qué tienes") ||
+      textLower.includes("que tienes") ||
+      textLower.includes("menu") ||
+      textLower.includes("menú");
 
-const textLower = text.toLowerCase().trim();
+    if (wantsCatalog) {
+      console.log("🔥 Entrando a catálogo");
 
-const wantsCatalog =
-  textLower.includes("catalogo") ||
-  textLower.includes("catálogo") ||
-  textLower.includes("productos") ||
-  textLower.includes("qué vendes") ||
-  textLower.includes("que vendes") ||
-  textLower.includes("qué tienes") ||
-  textLower.includes("que tienes") ||
-  textLower.includes("menu") ||
-  textLower.includes("menú");
+      if (!productos.length) {
+        const emptyMessage = "Aún no hay productos disponibles.";
+        await saveMessage(business.id, customer.id, "assistant", emptyMessage);
+        await enviarWhatsApp(from, emptyMessage, business);
+        return res.sendStatus(200);
+      }
 
-if (wantsCatalog) {
-  const productos = await getProductos(business.id);
+      for (const producto of productos) {
+        console.log("📸 Enviando:", producto.name, producto.image_url);
 
-  if (!productos.length) {
-    await enviarWhatsApp(
-      from,
-      "Aún no hay productos disponibles.",
-      business
-    );
-    return res.sendStatus(200);
-  }
+        if (producto.image_url) {
+          await enviarImagenWhatsApp(from, producto, business);
+        } else {
+          const fallbackText = `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
 
-  for (const producto of productos) {
-    if (producto.image_url) {
-      await enviarImagenWhatsApp(
-        from,
-        producto,business
-      );
-    } else {
-      await enviarWhatsApp(
-        from,
-        `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+👉 Responde 1 para comprar`;
 
-👉 Responde 1 para comprar`,
-        business
-      );
+          await enviarWhatsApp(from, fallbackText, business);
+        }
+      }
+
+      return res.sendStatus(200);
     }
-  }
 
-  return res.sendStatus(200);
-}
+    // 2) Cliente quiere comprar
+    if (textLower === "1") {
+      state.etapa = "capturando_datos";
 
+      const askDataMessage = `Perfecto 🙌 Envíame:
+1) Nombre completo
+2) Dirección
+3) Ciudad`;
 
-// 2) Cliente quiere comprar
-if (textLower === "1") {
-  await enviarWhatsApp(
-    from,
-    "Perfecto 🙌 Envíame:\n1) Nombre completo\n2) Dirección\n3) Ciudad",
-    business
-  );
+      await saveMessage(business.id, customer.id, "assistant", askDataMessage);
+      await enviarWhatsApp(from, askDataMessage, business);
 
-  return res.sendStatus(200);
-}
+      return res.sendStatus(200);
+    }
 
+    // 3) Si ya estamos capturando datos y ya mandó nombre + dirección, mostrar resumen
+    if (
+      state.etapa === "capturando_datos" &&
+      state.perfil.nombre &&
+      state.perfil.direccion
+    ) {
+      state.etapa = "confirmacion";
 
-// 3) Si ya estamos capturando datos y ya mandó nombre + dirección, mostrar resumen
-if (
-  state.etapa === "capturando_datos" &&
-  state.perfil.nombre &&
-  state.perfil.direccion
-) {
-  state.etapa = "confirmacion";
+      const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
+      const subtotal = total - shippingCost;
 
-  const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
-  const subtotal = total - shippingCost;
-
-  await enviarWhatsApp(
-    from,
-    `Perfecto 🙌
+      const resumenMessage = `Perfecto 🙌
 
 Tu pedido:
 📦 ${state.perfil.producto || "Producto"}
@@ -194,26 +188,27 @@ Tu pedido:
 
 TOTAL: $${Number(total).toFixed(2)} MXN
 
-¿Confirmas tu pedido? Responde: confirmo`,
-    business
-  );
+¿Confirmas tu pedido? Responde: confirmo`;
 
-  return res.sendStatus(200);
-}
+      await saveMessage(business.id, customer.id, "assistant", resumenMessage);
+      await enviarWhatsApp(from, resumenMessage, business);
 
-// 4) Confirmación final
+      return res.sendStatus(200);
+    }
+
+    // 4) Confirmación final
     if (state.perfil.confirmado) {
       console.log("✅ Detecté confirmación de pedido");
       console.log("🧾 Perfil actual:", state.perfil);
 
-if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
-  await enviarWhatsApp(
-    from,
-    "Antes de confirmar necesito tu nombre completo y dirección de entrega.",
-    business
-  );
-  return res.sendStatus(200);
-}
+      if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
+        const missingDataMessage =
+          "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
+
+        await saveMessage(business.id, customer.id, "assistant", missingDataMessage);
+        await enviarWhatsApp(from, missingDataMessage, business);
+        return res.sendStatus(200);
+      }
 
       const pedido = await saveOrder(
         business.id,
@@ -222,6 +217,8 @@ if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
       );
 
       if (pedido) {
+        state.etapa = null;
+
         const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
 Producto: ${state.perfil.producto || "No especificado"}
@@ -241,7 +238,9 @@ En breve te contactaremos para continuar con el pedido.`;
       }
     }
 
-const respuesta = await procesarMensaje(from, text, business.prompt);
+    // 5) Flujo normal con IA
+    const respuesta = await procesarMensaje(from, text, business.prompt);
+
     console.log("🤖 WhatsApp OUT:", respuesta);
 
     await saveMessage(
@@ -252,10 +251,10 @@ const respuesta = await procesarMensaje(from, text, business.prompt);
     );
 
     await enviarWhatsApp(from, respuesta, business);
-    res.sendStatus(200);
+    return res.sendStatus(200);
   } catch (e) {
     console.error("❌ Error en webhook:", e?.response?.data || e);
-    res.sendStatus(200);
+    return res.sendStatus(200);
   }
 });
 
@@ -540,7 +539,7 @@ if (
   t.includes("confirmo") ||
   t.includes("confirmar") ||
   t.includes("sí confirmo") ||
-  t.includes("si confirmo") ||
+  t.includes("si confirmo") 
   
 ) {
   perfil.confirmado = true;
@@ -666,8 +665,6 @@ caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
     }
   );
 }
-
-
 
 async function procesarMensaje(clienteId, mensaje, promptNegocio = PERFIL_NEGOCIO) {
   const state = getClientState(clienteId);
