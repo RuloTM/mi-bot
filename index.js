@@ -246,6 +246,22 @@ En breve te contactaremos para continuar con el pedido.`;
   }
 }    
 
+// 🔥 RESPUESTA POR DEFECTO (SI NO ENTRA EN NADA)
+if (!state.etapa) {
+  const mensajeDefault = `Hola 👋
+
+Puedo ayudarte con:
+
+📦 Ver catálogo (escribe: catálogo)
+🛒 Comprar (responde 1 en un producto)
+
+¿En qué te ayudo?`;
+
+  await saveMessage(business.id, customer.id, "assistant", mensajeDefault);
+  await enviarWhatsApp(from, mensajeDefault, business);
+
+  return res.sendStatus(200);
+}
     // 5) Flujo normal con IA
     const respuesta = await procesarMensaje(from, text, business.prompt);
 
