@@ -88,8 +88,12 @@ const phoneNumberId = changes?.metadata?.phone_number_id;
 const business = await getBusiness(phoneNumberId);
 if (!business) return res.sendStatus(200);
 
+
 const customer = await getOrCreateCustomer(business.id, from);
 const state = getClientState(from);
+
+state.perfil = state.perfil || {};
+state.perfil = extractPerfil(state.perfil, text);
 
 const textLower = text.toLowerCase().trim();
 
@@ -529,11 +533,17 @@ Cierre obligatorio (sin excepciones):
 - Responde en formato de lista corta.
 `;
 
+
 function getClientState(clienteId) {
-  if (!memory[clienteId]) memory[clienteId] = { history: [] };
+  if (!memory[clienteId]) {
+    memory[clienteId] = {
+      history: [],
+      perfil: {},
+      etapa: null
+    };
+  }
   return memory[clienteId];
 }
-
 function esNombreValido(texto) {
   const limpio = texto.trim().replace(/\s+/g, " ");
 
