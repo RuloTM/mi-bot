@@ -140,14 +140,37 @@ if (wantsCatalog) {
 
 // 2) Cliente quiere comprar
 if (textLower === "1") {
+  const productos = await getBusinessProducts(business.id);
+
+  if (!productos.length) {
+    const noProductsMessage = "No encontré productos disponibles en este momento.";
+    await saveMessage(business.id, customer.id, "assistant", noProductsMessage);
+    await enviarWhatsApp(from, noProductsMessage, business);
+    return res.sendStatus(200);
+  }
+
+  // Como ahorita muestras un solo producto en catálogo, tomamos el primero
+  state.perfil = state.perfil || {};
+  state.perfil.producto = productos[0].name;
+
+  // opcional: guardar también precio actual
+  state.productoSeleccionado = productos[0];
+
   state.etapa = "pidiendo_nombre";
 
-  const askNameMessage = "Perfecto 🙌 Envíame tu nombre completo.";
+  const askNameMessage = `Perfecto 🙌 Elegiste: ${productos[0].name}
+
+Envíame tu nombre completo.`;
+
   await saveMessage(business.id, customer.id, "assistant", askNameMessage);
   await enviarWhatsApp(from, askNameMessage, business);
 
   return res.sendStatus(200);
 }
+
+
+
+
 
 // 3) Etapa: pedir nombre
 if (state.etapa === "pidiendo_nombre") {
@@ -193,7 +216,7 @@ if (state.etapa === "pidiendo_ciudad") {
   const resumenMessage = `Perfecto 🙌
 
 Tu pedido:
-📦 ${state.perfil.producto || "Producto"}
+📦 ${state.perfil.producto || state.productoSeleccionado?.name || "Producto"}
 💰 $${Number(subtotal).toFixed(2)} MXN
 
 🚚 Envío: $${Number(shippingCost).toFixed(2)} MXN
@@ -213,7 +236,11 @@ if (state.perfil.confirmado) {
   console.log("✅ Detecté confirmación de pedido");
   console.log("🧾 Perfil actual:", state.perfil);
 
-  if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
+  if (
+  !(state.perfil.producto || state.productoSeleccionado?.name) ||
+  !state.perfil.nombre ||
+  !state.perfil.direccion
+) {
     const missingDataMessage =
       "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
 
@@ -222,6 +249,9 @@ if (state.perfil.confirmado) {
     return res.sendStatus(200);
   }
 
+if (!state.perfil.producto && state.productoSeleccionado?.name) {
+  state.perfil.producto = state.productoSeleccionado.name;
+}
   const pedido = await saveOrder(
     business.id,
     customer.id,
