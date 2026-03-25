@@ -82,7 +82,15 @@ app.post("/webhook", async (req, res) => {
 
     const from = message.from;
     const text = message.text?.body || "";
-    const phoneNumberId = changes?.metadata?.phone_number_id;
+    
+const phoneNumberId = changes?.metadata?.phone_number_id;
+
+const business = await getBusiness(phoneNumberId);
+if (!business) return res.sendStatus(200);
+
+const customer = await getOrCreateCustomer(business.id, from);
+const state = getClientState(from);
+
 const textLower = text.toLowerCase().trim();
 
 // 1) Catálogo primero
@@ -541,7 +549,6 @@ function esNombreValido(texto) {
 // 👇 tu función existente
 function extractPerfil(perfil, texto) {
 
-function extractPerfil(perfil, texto) {
   const t = texto.toLowerCase();
 
   if (t.includes("monterrey")) perfil.ciudad = "Monterrey";
