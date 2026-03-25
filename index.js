@@ -83,102 +83,102 @@ app.post("/webhook", async (req, res) => {
     const from = message.from;
     const text = message.text?.body || "";
     const phoneNumberId = changes?.metadata?.phone_number_id;
-    const textLower = text.toLowerCase().trim();
+const textLower = text.toLowerCase().trim();
 
-    console.log("📩 WhatsApp IN:", from, text);
-    console.log("📱 phone_number_id:", phoneNumberId);
+// 1) Catálogo primero
+const wantsCatalog =
+  textLower.includes("catalogo") ||
+  textLower.includes("catálogo") ||
+  textLower.includes("productos") ||
+  textLower.includes("qué vendes") ||
+  textLower.includes("que vendes") ||
+  textLower.includes("qué tienes") ||
+  textLower.includes("que tienes") ||
+  textLower.includes("menu") ||
+  textLower.includes("menú");
 
-    const business = await getBusiness(phoneNumberId);
+if (wantsCatalog) {
+  console.log("🔥 Entrando a catálogo");
 
-    if (!business) {
-      console.log("❌ Negocio no registrado en Supabase");
-      return res.sendStatus(200);
-    }
+  const productos = await getBusinessProducts(business.id);
 
-    const customer = await getOrCreateCustomer(business.id, from);
+  if (!productos.length) {
+    const emptyMessage = "Aún no hay productos disponibles.";
+    await saveMessage(business.id, customer.id, "assistant", emptyMessage);
+    await enviarWhatsApp(from, emptyMessage, business);
+    return res.sendStatus(200);
+  }
 
-    const state = getClientState(`${business.id}:${from}`);
-    state.perfil = state.perfil || {};
+  for (const producto of productos) {
+    console.log("📸 Enviando:", producto.name, producto.image_url);
 
-    // Extraer datos del mensaje actual
-    state.perfil = extractPerfil(state.perfil, text);
-
-    // Detectar producto del catálogo
-    const productos = await getBusinessProducts(business.id);
-    const detectedProduct = findProductFromText(productos, text);
-
-    if (detectedProduct) {
-      state.perfil.producto = detectedProduct.name;
-    }
-
-    await saveMessage(business.id, customer.id, "user", text);
-
-    // 1) Catálogo primero
-    const wantsCatalog =
-      textLower.includes("catalogo") ||
-      textLower.includes("catálogo") ||
-      textLower.includes("productos") ||
-      textLower.includes("qué vendes") ||
-      textLower.includes("que vendes") ||
-      textLower.includes("qué tienes") ||
-      textLower.includes("que tienes") ||
-      textLower.includes("menu") ||
-      textLower.includes("menú");
-
-    if (wantsCatalog) {
-      console.log("🔥 Entrando a catálogo");
-
-      if (!productos.length) {
-        const emptyMessage = "Aún no hay productos disponibles.";
-        await saveMessage(business.id, customer.id, "assistant", emptyMessage);
-        await enviarWhatsApp(from, emptyMessage, business);
-        return res.sendStatus(200);
-      }
-
-      for (const producto of productos) {
-        console.log("📸 Enviando:", producto.name, producto.image_url);
-
-        if (producto.image_url) {
-          await enviarImagenWhatsApp(from, producto, business);
-        } else {
-          const fallbackText = `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
+    if (producto.image_url) {
+      await enviarImagenWhatsApp(from, producto, business);
+    } else {
+      const fallbackText = `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
 
 👉 Responde 1 para comprar`;
 
-          await enviarWhatsApp(from, fallbackText, business);
-        }
-      }
-
-      return res.sendStatus(200);
+      await enviarWhatsApp(from, fallbackText, business);
     }
+  }
 
-    // 2) Cliente quiere comprar
-    if (textLower === "1") {
-      state.etapa = "capturando_datos";
+  return res.sendStatus(200);
+}
 
-      const askDataMessage = `Perfecto 🙌 Envíame:
-1) Nombre completo
-2) Dirección
-3) Ciudad`;
+// 2) Cliente quiere comprar
+if (textLower === "1") {
+  state.etapa = "pidiendo_nombre";
 
-      await saveMessage(business.id, customer.id, "assistant", askDataMessage);
-      await enviarWhatsApp(from, askDataMessage, business);
+  const askNameMessage = "Perfecto 🙌 Envíame tu nombre completo.";
+  await saveMessage(business.id, customer.id, "assistant", askNameMessage);
+  await enviarWhatsApp(from, askNameMessage, business);
 
-      return res.sendStatus(200);
-    }
+  return res.sendStatus(200);
+}
 
-    // 3) Si ya estamos capturando datos y ya mandó nombre + dirección, mostrar resumen
-    if (
-      state.etapa === "capturando_datos" &&
-      state.perfil.nombre &&
-      state.perfil.direccion
-    ) {
-      state.etapa = "confirmacion";
+// 3) Etapa: pedir nombre
+if (state.etapa === "pidiendo_nombre") {
+  if (!esNombreValido(text)) {
+    const invalidNameMessage =
+      "Por favor envíame tu nombre completo, por ejemplo: Juan Pérez";
 
-      const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
-      const subtotal = total - shippingCost;
+    await saveMessage(business.id, customer.id, "assistant", invalidNameMessage);
+    await enviarWhatsApp(from, invalidNameMessage, business);
+    return res.sendStatus(200);
+  }
 
-      const resumenMessage = `Perfecto 🙌
+  state.perfil.nombre = text.trim();
+  state.etapa = "pidiendo_direccion";
+
+  const askAddressMessage = "Gracias 🙌 Ahora envíame tu dirección completa.";
+  await saveMessage(business.id, customer.id, "assistant", askAddressMessage);
+  await enviarWhatsApp(from, askAddressMessage, business);
+
+  return res.sendStatus(200);
+}
+
+// 4) Etapa: pedir dirección
+if (state.etapa === "pidiendo_direccion") {
+  state.perfil.direccion = text.trim();
+  state.etapa = "pidiendo_ciudad";
+
+  const askCityMessage = "Perfecto. Ahora envíame tu ciudad.";
+  await saveMessage(business.id, customer.id, "assistant", askCityMessage);
+  await enviarWhatsApp(from, askCityMessage, business);
+
+  return res.sendStatus(200);
+}
+
+// 5) Etapa: pedir ciudad y mostrar resumen
+if (state.etapa === "pidiendo_ciudad") {
+  state.perfil.ciudad = text.trim();
+  state.etapa = "confirmacion";
+
+  const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
+  const subtotal = total - shippingCost;
+
+  const resumenMessage = `Perfecto 🙌
 
 Tu pedido:
 📦 ${state.perfil.producto || "Producto"}
@@ -190,53 +190,53 @@ TOTAL: $${Number(total).toFixed(2)} MXN
 
 ¿Confirmas tu pedido? Responde: confirmo`;
 
-      await saveMessage(business.id, customer.id, "assistant", resumenMessage);
-      await enviarWhatsApp(from, resumenMessage, business);
+  await saveMessage(business.id, customer.id, "assistant", resumenMessage);
+  await enviarWhatsApp(from, resumenMessage, business);
 
-      return res.sendStatus(200);
-    }
+  return res.sendStatus(200);
+}
 
-    // 4) Confirmación final
-    if (state.perfil.confirmado) {
-      console.log("✅ Detecté confirmación de pedido");
-      console.log("🧾 Perfil actual:", state.perfil);
+// 6) Confirmación final
+if (state.perfil.confirmado) {
+  console.log("✅ Detecté confirmación de pedido");
+  console.log("🧾 Perfil actual:", state.perfil);
 
-      if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
-        const missingDataMessage =
-          "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
+  if (!state.perfil.producto || !state.perfil.nombre || !state.perfil.direccion) {
+    const missingDataMessage =
+      "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
 
-        await saveMessage(business.id, customer.id, "assistant", missingDataMessage);
-        await enviarWhatsApp(from, missingDataMessage, business);
-        return res.sendStatus(200);
-      }
+    await saveMessage(business.id, customer.id, "assistant", missingDataMessage);
+    await enviarWhatsApp(from, missingDataMessage, business);
+    return res.sendStatus(200);
+  }
 
-      const pedido = await saveOrder(
-        business.id,
-        customer.id,
-        state.perfil
-      );
+  const pedido = await saveOrder(
+    business.id,
+    customer.id,
+    state.perfil
+  );
 
-      if (pedido) {
-        state.etapa = null;
+  if (pedido) {
+    state.etapa = null;
 
-        const respuestaConfirmacion = `✅ Pedido registrado correctamente.
+    const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
 Producto: ${state.perfil.producto || "No especificado"}
 Cantidad: ${state.perfil.cantidad || 1}
 
 En breve te contactaremos para continuar con el pedido.`;
 
-        await saveMessage(
-          business.id,
-          customer.id,
-          "assistant",
-          respuestaConfirmacion
-        );
+    await saveMessage(
+      business.id,
+      customer.id,
+      "assistant",
+      respuestaConfirmacion
+    );
 
-        await enviarWhatsApp(from, respuestaConfirmacion, business);
-        return res.sendStatus(200);
-      }
-    }
+    await enviarWhatsApp(from, respuestaConfirmacion, business);
+    return res.sendStatus(200);
+  }
+}    
 
     // 5) Flujo normal con IA
     const respuesta = await procesarMensaje(from, text, business.prompt);
@@ -509,6 +509,37 @@ function getClientState(clienteId) {
   if (!memory[clienteId]) memory[clienteId] = { history: [] };
   return memory[clienteId];
 }
+
+function esNombreValido(texto) {
+  const limpio = texto.trim().replace(/\s+/g, " ");
+
+  if (!limpio) return false;
+  if (/\d/.test(limpio)) return false;
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(limpio)) return false;
+
+  const palabras = limpio.split(" ");
+
+  if (palabras.length < 2 || palabras.length > 4) return false;
+  if (palabras.some(p => p.length < 2)) return false;
+
+  const prohibidas = new Set([
+    "catalogo", "catálogo", "productos", "producto",
+    "quiero", "comprar", "precio", "precios",
+    "menu", "menú", "iphone", "funda", "fundas",
+    "negra", "blanca", "azul", "roja",
+    "si", "sí", "ok", "va", "confirmo",
+    "transferencia", "tarjeta",
+    "calle", "colonia", "col", "cp", "c.p",
+    "envio", "envío", "veracruz", "monterrey"
+  ]);
+
+  if (palabras.some(p => prohibidas.has(p.toLowerCase()))) return false;
+
+  return true;
+}
+
+// 👇 tu función existente
+function extractPerfil(perfil, texto) {
 
 function extractPerfil(perfil, texto) {
   const t = texto.toLowerCase();
