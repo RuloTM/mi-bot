@@ -336,11 +336,12 @@ await saveMessage(
   "assistant",
   respuesta
 );
-
 await enviarWhatsApp(from, respuesta, business);
 return res.sendStatus(200);
 
-
+  } catch (e) {
+    console.error("❌ Error en webhook:", e?.response?.data || e);
+    return res.sendStatus(200);
   }
 });
 
