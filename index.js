@@ -252,49 +252,29 @@ if (state.perfil.confirmado) {
     state.perfil
   );
 
-if (pedido) {
-  state.etapa = "pedido_finalizado";
-  state.productoSeleccionado = null;
-  state.perfil = {};
-  state.etapa = "pedido_finalizado";
+  if (pedido) {
+    state.etapa = "pedido_finalizado";
+    state.productoSeleccionado = null;
+    state.perfil = {};
 
-  const respuestaConfirmacion = `✅ Pedido registrado correctamente.
+    const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
 Producto: ${pedido.product || "No especificado"}
 Cantidad: ${pedido.quantity || 1}
 
 En breve te contactaremos para continuar con el pedido.`;
 
-  await saveMessage(
-    business.id,
-    customer.id,
-    "assistant",
-    respuestaConfirmacion
-  );
+    await saveMessage(
+      business.id,
+      customer.id,
+      "assistant",
+      respuestaConfirmacion
+    );
 
-  await enviarWhatsApp(from, respuestaConfirmacion, business);
-  return res.sendStatus(200);
+    await enviarWhatsApp(from, respuestaConfirmacion, business);
+    return res.sendStatus(200);
+  }
 }
-}//
-    
-
-// 🔥 RESPUESTA POR DEFECTO (SI NO ENTRA EN NADA)
-/*if (!state.etapa) {
-  const mensajeDefault = `Hola 👋
-
-Puedo ayudarte con:
-📦 Ver catálogo (escribe: catálogo)
-🛒 Comprar (responde 1 en un producto)
-
-¿En qué te ayudo?`;
-
-  await saveMessage(business.id, customer.id, "assistant", mensajeDefault);
-  await enviarWhatsApp(from, mensajeDefault, business);
-
-  return res.sendStatus(200);
-}
-*/
-    // 5) Flujo normal con IA
 
 // 7) Si hay una compra en proceso, NO usar IA
 if (
@@ -302,9 +282,9 @@ if (
   state.etapa !== "confirmacion" &&
   state.etapa !== "pedido_finalizado"
 ) {
-
   const mensajeProceso =
     "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
+
   await saveMessage(business.id, customer.id, "assistant", mensajeProceso);
   await enviarWhatsApp(from, mensajeProceso, business);
   return res.sendStatus(200);
@@ -318,11 +298,11 @@ if (
   state.perfil.producto &&
   !state.perfil.confirmado
 ) {
-  const recordatorio = "Solo falta confirmar tu pedido 🙌 Responde: confirmo";
-  
+  const recordatorio =
+    "Solo falta confirmar tu pedido 🙌 Responde: confirmo";
+
   await saveMessage(business.id, customer.id, "assistant", recordatorio);
   await enviarWhatsApp(from, recordatorio, business);
-
   return res.sendStatus(200);
 }
 
@@ -339,7 +319,6 @@ if (state.etapa === "pedido_finalizado") {
   ];
 
   if (acknowledgements.includes(textLower)) {
-
     // 👇 respuestas variables tipo humano
     const respuestas = [
       "Gracias 🙌 Tu pedido ya quedó registrado.",
@@ -357,14 +336,12 @@ if (state.etapa === "pedido_finalizado") {
 
     return res.sendStatus(200);
   }
-}
 
   // Si quiere comprar otra vez
   if (wantsCatalog || textLower === "1") {
     state.etapa = null;
   }
 }
-
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
 const respuesta = await procesarMensaje(from, text, business.prompt);
@@ -380,16 +357,18 @@ await saveMessage(
 
 await enviarWhatsApp(from, respuesta, business);
 return res.sendStatus(200);
+
   } catch (e) {
     console.error("❌ Error en webhook:", e?.response?.data || e);
     return res.sendStatus(200);
   }
 });
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 
-const memory = {};
+async function getBusiness(phoneNumberId) {
+
+
+
+
 
 async function getBusiness(phoneNumberId) {
   const { data, error } = await supabase
