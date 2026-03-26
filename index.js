@@ -252,29 +252,29 @@ if (state.perfil.confirmado) {
     state.perfil
   );
 
-  if (pedido) {
-    state.etapa = null;
-    state.productoSeleccionado = null;
-    state.perfil = {};
+if (pedido) {
+  state.etapa = "pedido_finalizado";
+  state.productoSeleccionado = null;
+  state.perfil = {};
 
-    const respuestaConfirmacion = `✅ Pedido registrado correctamente.
+  const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
 Producto: ${pedido.product || "No especificado"}
 Cantidad: ${pedido.quantity || 1}
 
 En breve te contactaremos para continuar con el pedido.`;
 
-    await saveMessage(
-      business.id,
-      customer.id,
-      "assistant",
-      respuestaConfirmacion
-    );
+  await saveMessage(
+    business.id,
+    customer.id,
+    "assistant",
+    respuestaConfirmacion
+  );
 
-    await enviarWhatsApp(from, respuestaConfirmacion, business);
-    return res.sendStatus(200);
-  }
-}    
+  await enviarWhatsApp(from, respuestaConfirmacion, business);
+  return res.sendStatus(200);
+}
+    
 
 // 🔥 RESPUESTA POR DEFECTO (SI NO ENTRA EN NADA)
 /*if (!state.etapa) {
@@ -297,7 +297,8 @@ Puedo ayudarte con:
 // 7) Si hay una compra en proceso, NO usar IA
 if (
   state.etapa &&
-  state.etapa !== "confirmacion"
+  state.etapa !== "confirmacion" &&
+  state.etapa !== "pedido_finalizado"
 ) {
 
   const mensajeProceso =
@@ -323,6 +324,32 @@ if (
   return res.sendStatus(200);
 }
 
+// 🧠 Manejo post-compra (EVITA respuestas incoherentes)
+if (state.etapa === "pedido_finalizado") {
+  const acknowledgements = [
+    "ok",
+    "gracias",
+    "sale",
+    "va",
+    "perfecto",
+    "excelente",
+    "bien"
+  ];
+
+  if (acknowledgements.includes(textLower)) {
+    const cierreMessage =
+      "Gracias 🙌 Tu pedido ya quedó registrado. En breve te contactaremos.";
+
+    await saveMessage(business.id, customer.id, "assistant", cierreMessage);
+    await enviarWhatsApp(from, cierreMessage, business);
+    return res.sendStatus(200);
+  }
+
+  // Si quiere comprar otra vez
+  if (wantsCatalog || textLower === "1") {
+    state.etapa = null;
+  }
+}
 
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
