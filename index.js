@@ -613,7 +613,7 @@ function getClientState(clienteId) {
     memory[clienteId] = {
       history: [],
       perfil: {},
-      etapa: null
+      etapa: null,
       productoSeleccionado: null
     };
   }
