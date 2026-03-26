@@ -274,6 +274,7 @@ En breve te contactaremos para continuar con el pedido.`;
 
   await enviarWhatsApp(from, respuestaConfirmacion, business);
   return res.sendStatus(200);
+}
 }//
     
 
