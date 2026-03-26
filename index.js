@@ -149,13 +149,9 @@ if (textLower === "1") {
     return res.sendStatus(200);
   }
 
-  // Como ahorita muestras un solo producto en catálogo, tomamos el primero
-  state.perfil = state.perfil || {};
-  state.perfil.producto = productos[0].name;
-
-  // opcional: guardar también precio actual
+  state.perfil = {};
   state.productoSeleccionado = productos[0];
-
+  state.perfil.producto = productos[0].name;
   state.etapa = "pidiendo_nombre";
 
   const askNameMessage = `Perfecto 🙌 Elegiste: ${productos[0].name}
@@ -167,9 +163,6 @@ Envíame tu nombre completo.`;
 
   return res.sendStatus(200);
 }
-
-
-
 
 
 // 3) Etapa: pedir nombre
@@ -237,10 +230,10 @@ if (state.perfil.confirmado) {
   console.log("🧾 Perfil actual:", state.perfil);
 
   if (
-  !(state.perfil.producto || state.productoSeleccionado?.name) ||
-  !state.perfil.nombre ||
-  !state.perfil.direccion
-) {
+    !(state.perfil.producto || state.productoSeleccionado?.name) ||
+    !state.perfil.nombre ||
+    !state.perfil.direccion
+  ) {
     const missingDataMessage =
       "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
 
@@ -249,9 +242,10 @@ if (state.perfil.confirmado) {
     return res.sendStatus(200);
   }
 
-if (!state.perfil.producto && state.productoSeleccionado?.name) {
-  state.perfil.producto = state.productoSeleccionado.name;
-}
+  if (!state.perfil.producto && state.productoSeleccionado?.name) {
+    state.perfil.producto = state.productoSeleccionado.name;
+  }
+
   const pedido = await saveOrder(
     business.id,
     customer.id,
@@ -260,11 +254,13 @@ if (!state.perfil.producto && state.productoSeleccionado?.name) {
 
   if (pedido) {
     state.etapa = null;
+    state.productoSeleccionado = null;
+    state.perfil = {};
 
     const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
-Producto: ${state.perfil.producto || "No especificado"}
-Cantidad: ${state.perfil.cantidad || 1}
+Producto: ${pedido.product || "No especificado"}
+Cantidad: ${pedido.quantity || 1}
 
 En breve te contactaremos para continuar con el pedido.`;
 
@@ -297,22 +293,54 @@ Puedo ayudarte con:
 }
 */
     // 5) Flujo normal con IA
-    const respuesta = await procesarMensaje(from, text, business.prompt);
 
-    console.log("🤖 WhatsApp OUT:", respuesta);
+// 7) Si hay una compra en proceso, NO usar IA
+if (
+  state.etapa &&
+  state.etapa !== "confirmacion"
+) {
 
-    await saveMessage(
-      business.id,
-      customer.id,
-      "assistant",
-      respuesta
-    );
+  const mensajeProceso =
+    "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
+  await saveMessage(business.id, customer.id, "assistant", mensajeProceso);
+  await enviarWhatsApp(from, mensajeProceso, business);
+  return res.sendStatus(200);
+}
 
-    await enviarWhatsApp(from, respuesta, business);
-    return res.sendStatus(200);
-  } catch (e) {
-    console.error("❌ Error en webhook:", e?.response?.data || e);
-    return res.sendStatus(200);
+// 🔒 Si ya tenemos datos completos, NO dejar que IA intervenga
+if (
+  state.perfil.nombre &&
+  state.perfil.direccion &&
+  state.perfil.ciudad &&
+  state.perfil.producto &&
+  !state.perfil.confirmado
+) {
+  const recordatorio = "Solo falta confirmar tu pedido 🙌 Responde: confirmo";
+  
+  await saveMessage(business.id, customer.id, "assistant", recordatorio);
+  await enviarWhatsApp(from, recordatorio, business);
+
+  return res.sendStatus(200);
+}
+
+
+
+// 8) Flujo normal con IA solo si NO hay etapa activa
+const respuesta = await procesarMensaje(from, text, business.prompt);
+
+console.log("🤖 WhatsApp OUT:", respuesta);
+
+await saveMessage(
+  business.id,
+  customer.id,
+  "assistant",
+  respuesta
+);
+
+await enviarWhatsApp(from, respuesta, business);
+return res.sendStatus(200);
+
+
   }
 });
 
@@ -639,7 +667,7 @@ if (
   perfil.confirmado = true;
 }
 
-  if (!perfil.nombre) {
+  if (!perfil.nombre && esNombreValido(texto)) {
     const contieneNumero = /\d/.test(texto);
 
     const palabrasBloqueadas = [
