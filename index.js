@@ -339,13 +339,25 @@ if (state.etapa === "pedido_finalizado") {
   ];
 
   if (acknowledgements.includes(textLower)) {
-    const cierreMessage =
-      "Gracias 🙌 Tu pedido ya quedó registrado. En breve te contactaremos.";
 
-    await saveMessage(business.id, customer.id, "assistant", cierreMessage);
-    await enviarWhatsApp(from, cierreMessage, business);
+    // 👇 respuestas variables tipo humano
+    const respuestas = [
+      "Gracias 🙌 Tu pedido ya quedó registrado.",
+      "Perfecto 🙌 Ya tenemos tu pedido.",
+      "Listo ✅ Todo quedó registrado correctamente.",
+      "Excelente 👍 En breve te contactamos.",
+      "Ya quedó 👌 Gracias por tu compra."
+    ];
+
+    const mensaje =
+      respuestas[Math.floor(Math.random() * respuestas.length)];
+
+    await saveMessage(business.id, customer.id, "assistant", mensaje);
+    await enviarWhatsApp(from, mensaje, business);
+
     return res.sendStatus(200);
   }
+}
 
   // Si quiere comprar otra vez
   if (wantsCatalog || textLower === "1") {
