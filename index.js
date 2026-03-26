@@ -90,7 +90,8 @@ if (!business) return res.sendStatus(200);
 
 
 const customer = await getOrCreateCustomer(business.id, from);
-const state = getClientState(from);
+const state = getClientState(`${business.id}:${from}`);
+
 
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
@@ -363,12 +364,6 @@ return res.sendStatus(200);
     return res.sendStatus(200);
   }
 });
-
-async function getBusiness(phoneNumberId) {
-
-
-
-
 
 async function getBusiness(phoneNumberId) {
   const { data, error } = await supabase
