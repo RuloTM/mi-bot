@@ -606,6 +606,7 @@ Cierre obligatorio (sin excepciones):
 - Responde en formato de lista corta.
 `;
 
+const memory = {};
 
 function getClientState(clienteId) {
   if (!memory[clienteId]) {
@@ -613,6 +614,7 @@ function getClientState(clienteId) {
       history: [],
       perfil: {},
       etapa: null
+      productoSeleccionado: null
     };
   }
   return memory[clienteId];
