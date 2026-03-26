@@ -363,6 +363,7 @@ await saveMessage(
   "assistant",
   respuesta
 );
+
 await enviarWhatsApp(from, respuesta, business);
 return res.sendStatus(200);
 
@@ -371,7 +372,6 @@ return res.sendStatus(200);
     return res.sendStatus(200);
   }
 });
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
