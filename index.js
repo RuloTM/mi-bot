@@ -6,9 +6,10 @@ const OpenAI = require("openai");
 const axios = require("axios");
 const { createClient } = require("@supabase/supabase-js");
 
-apiKey: process.env.OPENAI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
-
+	
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
