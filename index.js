@@ -256,6 +256,7 @@ if (pedido) {
   state.etapa = "pedido_finalizado";
   state.productoSeleccionado = null;
   state.perfil = {};
+  state.etapa = "pedido_finalizado";
 
   const respuestaConfirmacion = `✅ Pedido registrado correctamente.
 
@@ -273,7 +274,7 @@ En breve te contactaremos para continuar con el pedido.`;
 
   await enviarWhatsApp(from, respuestaConfirmacion, business);
   return res.sendStatus(200);
-}
+}//
     
 
 // 🔥 RESPUESTA POR DEFECTO (SI NO ENTRA EN NADA)
@@ -366,7 +367,6 @@ await saveMessage(
 
 await enviarWhatsApp(from, respuesta, business);
 return res.sendStatus(200);
-
   } catch (e) {
     console.error("❌ Error en webhook:", e?.response?.data || e);
     return res.sendStatus(200);
