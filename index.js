@@ -102,6 +102,17 @@ state.perfil = extractPerfil(state.perfil, text);
 
 const textLower = text.toLowerCase().trim();
 
+// 🔥 Detectar producto automáticamente desde texto
+const productos = await getBusinessProducts(business.id);
+const productoDetectado = findProductFromText(productos, text);
+
+if (productoDetectado) {
+  console.log("🧠 Producto detectado:", productoDetectado.name);
+
+  state.productoSeleccionado = productoDetectado;
+  state.perfil.producto = productoDetectado.name;
+}
+
 // 1) Catálogo primero
 const wantsCatalog =
   textLower.includes("catalogo") ||
