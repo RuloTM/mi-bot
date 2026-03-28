@@ -2,7 +2,7 @@
 const token = localStorage.getItem("token");
 
 if (!token) {
-  window.location.href = "/login.html";
+    window.location.href = "/";
 }
 
 // 📦 Referencias del DOM
@@ -28,7 +28,7 @@ async function api(path, options = {}) {
 
   if (res.status === 401) {
     localStorage.removeItem("token");
-    window.location.href = "/login.html";
+window.location.href = "/";
     return;
   }
 
