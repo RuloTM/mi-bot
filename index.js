@@ -1006,16 +1006,6 @@ app.post("/products", requireAuth, async (req, res) => {
   try {
     const { name, price, image_url, active } = req.body;
 
-   const { data, error } = await supabase
-     .from("products")
-     .insert({
-     business_id: req.businessId,
-     name: String(name).trim(),
-     price: Number(price),
-     image_url: image_url || null,
-     active: active === undefined ? true : !!active
-  })
-
     if (!name || price === undefined || price === null) {
       return res.status(400).json({ error: "Nombre y precio son obligatorios" });
     }
@@ -1026,6 +1016,7 @@ app.post("/products", requireAuth, async (req, res) => {
         business_id: req.businessId,
         name: String(name).trim(),
         price: Number(price),
+        image_url: image_url || null,
         active: active === undefined ? true : !!active
       })
       .select()
