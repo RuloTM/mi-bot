@@ -384,17 +384,29 @@
         </div>
 
         <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
-          <form id="productForm" style="display:flex; gap:12px; flex-wrap:wrap;">
-            <input id="productName" type="text" placeholder="Nombre del producto" style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:240px;" required />
-            <input id="productPrice" type="number" step="0.01" placeholder="Precio" style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:140px;" required />
-            <button type="submit" class="btn-paid">Guardar producto</button>
+          <form id="productForm" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+  <input id="editingProductId" type="hidden" />
+
+  <input id="productName" type="text" placeholder="Nombre del producto"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:200px;" required />
+
+  <input id="productPrice" type="number" step="0.01" placeholder="Precio"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:120px;" required />
+
+  <input id="productImage" type="text" placeholder="URL imagen"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:240px;" />
+
+  <button id="saveProductBtn" type="submit" class="btn-paid">Guardar producto</button>
+  <button id="cancelEditBtn" type="button" class="btn-shipped" style="display:none;">Cancelar</button>
+
           </form>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th>Nombre</th>
+              <th>Imagen</th>
+	      <th>Nombre</th>
               <th>Precio</th>
               <th>Activo</th>
               <th>Creado</th>
@@ -789,25 +801,35 @@ async function loadProducts() {
 
     emptyState.style.display = "none";
 
-    products.forEach(product => {
-      const row = document.createElement("tr");
+products.forEach(product => {
+  const row = document.createElement("tr");
 
-      row.innerHTML = `
-        <td>${product.name || ""}</td>
-        <td>${formatCurrency(product.price || 0)}</td>
-        <td>${product.active ? "Sí" : "No"}</td>
-        <td>${formatDate(product.created_at)}</td>
-        <td>
-          <div class="actions">
-            <button class="btn-shipped" onclick="toggleProduct('${product.id}')">
-              ${product.active ? "Desactivar" : "Activar"}
-            </button>
-          </div>
-        </td>
-      `;
+  row.innerHTML = `
+    <td>
+      ${
+        product.image_url
+          ? `<img src="${product.image_url}" alt="${product.name || ""}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;">`
+          : "Sin imagen"
+      }
+    </td>
+    <td>${product.name || ""}</td>
+    <td>${formatCurrency(product.price || 0)}</td>
+    <td>${product.active ? "Sí" : "No"}</td>
+    <td>${formatDate(product.created_at)}</td>
+    <td>
+      <div class="actions">
+        <button class="btn-paid" onclick='editProduct(${JSON.stringify(product)})'>Editar</button>
+        <button class="btn-shipped" onclick="toggleProduct('${product.id}')">
+          ${product.active ? "Desactivar" : "Activar"}
+        </button>
+      </div>
+    </td>
+  `;
 
-      table.appendChild(row);
-    });
+  table.appendChild(row);
+});
+
+    
   } catch (error) {
     console.error("Error cargando productos:", error);
     table.innerHTML = "";
@@ -815,7 +837,7 @@ async function loadProducts() {
   }
 }
 
-async function createProduct(name, price) {
+async function createProduct(name, price, image_url) {
   const res = await authFetch("/products", {
     method: "POST",
     headers: {
@@ -824,6 +846,7 @@ async function createProduct(name, price) {
     body: JSON.stringify({
       name,
       price,
+      image_url,
       active: true
     })
   });
@@ -835,6 +858,46 @@ async function createProduct(name, price) {
 
   return res.json();
 }
+async function updateProduct(productId, name, price, image_url) {
+  const res = await authFetch(`/products/${productId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      price,
+      image_url
+    })
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "No se pudo actualizar el producto");
+  }
+
+  return res.json();
+}
+
+function resetProductForm() {
+  document.getElementById("editingProductId").value = "";
+  document.getElementById("productName").value = "";
+  document.getElementById("productPrice").value = "";
+  document.getElementById("productImage").value = "";
+  document.getElementById("saveProductBtn").textContent = "Guardar producto";
+  document.getElementById("cancelEditBtn").style.display = "none";
+}
+
+window.editProduct = function editProduct(product) {
+  document.getElementById("editingProductId").value = product.id || "";
+  document.getElementById("productName").value = product.name || "";
+  document.getElementById("productPrice").value = product.price || "";
+  document.getElementById("productImage").value = product.image_url || "";
+  document.getElementById("saveProductBtn").textContent = "Actualizar producto";
+  document.getElementById("cancelEditBtn").style.display = "inline-block";
+};
+
+document.getElementById("cancelEditBtn").addEventListener("click", resetProductForm);
 
 window.toggleProduct = async function toggleProduct(productId) {
   try {
@@ -853,29 +916,34 @@ window.toggleProduct = async function toggleProduct(productId) {
     alert(error.message || "Error cambiando estatus");
   }
 };
-
 const productForm = document.getElementById("productForm");
 
 if (productForm) {
   productForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    const productId = document.getElementById("editingProductId").value;
     const name = document.getElementById("productName").value.trim();
     const price = document.getElementById("productPrice").value;
+    const imageUrl = document.getElementById("productImage").value.trim();
 
     try {
-      await createProduct(name, price);
-      document.getElementById("productName").value = "";
-      document.getElementById("productPrice").value = "";
+      if (productId) {
+        await updateProduct(productId, name, price, imageUrl);
+      } else {
+        await createProduct(name, price, imageUrl);
+      }
+
+      resetProductForm();
       await loadProducts();
     } catch (error) {
-      console.error("Error creando producto:", error);
-      alert(error.message || "Error creando producto");
+      console.error("Error guardando producto:", error);
+      alert(error.message || "Error guardando producto");
     }
   });
 }
 
-
+initPanel();
     initPanel();
   </script>
 </body>
