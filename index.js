@@ -405,7 +405,7 @@ async function getOrCreateCustomer(businessId, whatsapp) {
 
   if (existing) return existing;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase	
     .from("customers")
     .insert({
       business_id: businessId,
