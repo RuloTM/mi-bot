@@ -129,8 +129,7 @@ console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
     const from = message.from;
     const text = message.text?.body || "";
 
-await saveMessage(business.id, customer.id, "user", text);
-    
+  
 const phoneNumberId = changes?.metadata?.phone_number_id;
 
 const business = await getBusiness(phoneNumberId);
@@ -138,6 +137,8 @@ if (!business) return res.sendStatus(200);
 
 
 const customer = await getOrCreateCustomer(business.id, from);
+await saveMessage(business.id, customer.id, "user", text);
+
 const state = getClientState(`${business.id}:${from}`);
 
 
@@ -468,7 +469,7 @@ async function getOrCreateCustomer(businessId, whatsapp) {
 }
 
 async function saveMessage(businessId, customerId, role, content) {
-  await supabase
+await supabase
     .from("messages")
     .insert({
       business_id: businessId,
@@ -477,6 +478,7 @@ async function saveMessage(businessId, customerId, role, content) {
       content
     });
 }
+  
 // ===============================
 // ESTADO DE CLIENTE (PERSISTENTE)
 // ===============================
@@ -545,16 +547,6 @@ async function clearCustomerState(businessId, customerId) {
     console.error("❌ Error limpiando customer_state:", error);
   }
 }  
-
-await supabase
-    .from("messages")
-    .insert({
-      business_id: businessId,
-      customer_id: customerId,
-      role,
-      content
-    });
-}
 
 async function calcularTotal(businessId, perfil) {
   const shippingCost = 120;
