@@ -18,6 +18,39 @@ const supabase = createClient(
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.get("/privacy", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Política de Privacidad</title>
+    </head>
+    <body>
+      <h1>Política de Privacidad</h1>
+      <p>Este servicio utiliza WhatsApp para responder mensajes de clientes.</p>
+      <p>No compartimos información con terceros.</p>
+      <p>Los datos se utilizan únicamente para atención al cliente.</p>
+    </body>
+    </html>
+  `);
+});
+
+app.get("/terms", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Términos del Servicio</title>
+    </head>
+    <body>
+      <h1>Términos del Servicio</h1>
+      <p>Este sistema automatiza respuestas en WhatsApp.</p>
+      <p>El uso es responsabilidad del cliente.</p>
+    </body>
+    </html>
+  `);
+});
 app.use(express.static("panel"));
 
 async function requireAuth(req, res, next) {
@@ -89,6 +122,8 @@ console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
 
     const from = message.from;
     const text = message.text?.body || "";
+
+await saveMessage(business.id, customer.id, "user", text);
     
 const phoneNumberId = changes?.metadata?.phone_number_id;
 
@@ -365,6 +400,7 @@ if (state.etapa === "pedido_finalizado") {
 // 8) Flujo normal con IA solo si NO hay etapa activa
 const respuesta = await procesarMensaje(from, text, business.prompt);
 
+console.log("📤 Enviando respuesta a:", from);
 console.log("🤖 WhatsApp OUT:", respuesta);
 
 await saveMessage(
@@ -427,6 +463,84 @@ async function getOrCreateCustomer(businessId, whatsapp) {
 
 async function saveMessage(businessId, customerId, role, content) {
   await supabase
+    .from("messages")
+    .insert({
+      business_id: businessId,
+      customer_id: customerId,
+      role,
+      content
+    });
+}
+// ===============================
+// ESTADO DE CLIENTE (PERSISTENTE)
+// ===============================
+
+async function getCustomerState(businessId, customerId) {
+  const { data, error } = await supabase
+    .from("customer_states")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("❌ Error obteniendo customer_state:", error);
+    return {
+      etapa: null,
+      perfil: {},
+      productoSeleccionado: null
+    };
+  }
+
+  if (!data) {
+    return {
+      etapa: null,
+      perfil: {},
+      productoSeleccionado: null
+    };
+  }
+
+  return {
+    etapa: data.etapa || null,
+    perfil: data.perfil || {},
+    productoSeleccionado: data.producto_seleccionado || null
+  };
+}
+
+async function saveCustomerState(businessId, customerId, state) {
+  const payload = {
+    business_id: businessId,
+    customer_id: customerId,
+    etapa: state.etapa || null,
+    perfil: state.perfil || {},
+    producto_seleccionado: state.productoSeleccionado || null,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from("customer_states")
+    .upsert(payload, {
+      onConflict: "business_id,customer_id"
+    });
+
+  if (error) {
+    console.error("❌ Error guardando customer_state:", error);
+  }
+}
+
+async function clearCustomerState(businessId, customerId) {
+  const { error } = await supabase
+    .from("customer_states")
+    .delete()
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId);
+
+  if (error) {
+    console.error("❌ Error limpiando customer_state:", error);
+  }
+}  
+
+await supabase
     .from("messages")
     .insert({
       business_id: businessId,
