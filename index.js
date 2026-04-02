@@ -19,6 +19,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("panel"));
+app.use((req, res, next) => {
+  console.log("➡️", req.method, req.path);
+  next();
+});
 
 app.get("/privacy", (req, res) => {
   res.send(`
@@ -129,18 +133,17 @@ console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
     const from = message.from;
     const text = message.text?.body || "";
 
-  
 const phoneNumberId = changes?.metadata?.phone_number_id;
 
 const business = await getBusiness(phoneNumberId);
 if (!business) return res.sendStatus(200);
 
-
 const customer = await getOrCreateCustomer(business.id, from);
+if (!customer) return res.sendStatus(200);
+
 await saveMessage(business.id, customer.id, "user", text);
 
 const state = getClientState(`${business.id}:${from}`);
-
 
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
