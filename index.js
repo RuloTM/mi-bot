@@ -18,19 +18,23 @@ const supabase = createClient(
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static("panel"));
 
 app.get("/privacy", (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="es">
     <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Política de Privacidad</title>
     </head>
     <body>
       <h1>Política de Privacidad</h1>
       <p>Este servicio utiliza WhatsApp para responder mensajes de clientes.</p>
       <p>No compartimos información con terceros.</p>
-      <p>Los datos se utilizan únicamente para atención al cliente.</p>
+      <p>Los datos se utilizan únicamente para atención al cliente y gestión de pedidos.</p>
+      <p>Si tienes dudas, contáctanos.</p>
     </body>
     </html>
   `);
@@ -39,19 +43,21 @@ app.get("/privacy", (req, res) => {
 app.get("/terms", (req, res) => {
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="es">
     <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Términos del Servicio</title>
     </head>
     <body>
       <h1>Términos del Servicio</h1>
-      <p>Este sistema automatiza respuestas en WhatsApp.</p>
-      <p>El uso es responsabilidad del cliente.</p>
+      <p>Este sistema automatiza respuestas en WhatsApp para atención a clientes.</p>
+      <p>El uso del servicio es responsabilidad del cliente.</p>
+      <p>No garantizamos disponibilidad continua ni ausencia total de errores.</p>
     </body>
     </html>
   `);
 });
-app.use(express.static("panel"));
 
 async function requireAuth(req, res, next) {
   try {
