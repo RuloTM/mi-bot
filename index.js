@@ -138,8 +138,17 @@ if (!message) {
 
 const phoneNumberId = changes?.metadata?.phone_number_id;
 
+// 🔥 IGNORAR EVENTOS DE PRUEBA DE META
+if (phoneNumberId !== "1024966857372614") {
+  console.log("⚠️ Evento ignorado (no es tu número):", phoneNumberId);
+  return res.sendStatus(200);
+}
+
 const business = await getBusiness(phoneNumberId);
-if (!business) return res.sendStatus(200);
+if (!business) {
+  console.log("⚠️ Negocio no encontrado para:", phoneNumberId);
+  return res.sendStatus(200);
+}
 
 const customer = await getOrCreateCustomer(business.id, from);
 if (!customer) return res.sendStatus(200);
