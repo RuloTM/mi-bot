@@ -128,10 +128,13 @@ console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
     const changes = entry?.changes?.[0]?.value;
     const message = changes?.messages?.[0];
 
-    if (!message) return res.sendStatus(200);
+if (!message) {
+  return res.sendStatus(200);
+}
 
     const from = message.from;
     const text = message.text?.body || "";
+    console.log("📩 TEXTO RECIBIDO:", text);
 
 const phoneNumberId = changes?.metadata?.phone_number_id;
 
@@ -143,7 +146,7 @@ if (!customer) return res.sendStatus(200);
 
 await saveMessage(business.id, customer.id, "user", text);
 
-const state = getClientState(`${business.id}:${from}`);
+let state = await getCustomerState(business.id, customer.id);
 
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
@@ -421,6 +424,10 @@ await saveMessage(
 );
 
 await enviarWhatsApp(from, respuesta, business);
+
+// 🔥 GUARDAR ESTADO AQUÍ (UNA SOLA VEZ)
+
+await saveCustomerState(business.id, customer.id, state);
 return res.sendStatus(200);
 
   } catch (e) {
@@ -937,8 +944,9 @@ caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
     }
   );
 }
-
+	
 async function procesarMensaje(clienteId, mensaje, promptNegocio = PERFIL_NEGOCIO) {
+
   const state = getClientState(clienteId);
 
   state.perfil = state.perfil || {};
