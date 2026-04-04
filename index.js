@@ -193,8 +193,7 @@ if (wantsCatalog) {
 
   if (!productos.length) {
     const emptyMessage = "Aún no hay productos disponibles.";
-    await saveMessage(business.id, customer.id, "assistant", emptyMessage);
-    await enviarWhatsApp(from, emptyMessage, business);
+    await replyAndPersist(business, customer, state, from, emptyMessage);
     return res.sendStatus(200);
   }
 
@@ -226,19 +225,17 @@ if (textLower === "1") {
     return res.sendStatus(200);
   }
 
-  state.perfil = {};
-  state.productoSeleccionado = productos[0];
-  state.perfil.producto = productos[0].name;
-  state.etapa = "pidiendo_nombre";
+state.perfil = {};
+state.productoSeleccionado = productos[0];
+state.perfil.producto = productos[0].name;
+state.etapa = "pidiendo_nombre";
 
-  const askNameMessage = `Perfecto 🙌 Elegiste: ${productos[0].name}
+const askNameMessage = `Perfecto 🙌 Elegiste: ${productos[0].name}
 
 Envíame tu nombre completo.`;
 
-  await saveMessage(business.id, customer.id, "assistant", askNameMessage);
-  await enviarWhatsApp(from, askNameMessage, business);
-
-  return res.sendStatus(200);
+await replyAndPersist(business, customer, state, from, askNameMessage);
+return res.sendStatus(200);
 }
 
 
@@ -253,26 +250,23 @@ if (state.etapa === "pidiendo_nombre") {
     return res.sendStatus(200);
   }
 
-  state.perfil.nombre = text.trim();
-  state.etapa = "pidiendo_direccion";
+state.perfil.nombre = text.trim();
+state.etapa = "pidiendo_direccion";
 
-  const askAddressMessage = "Gracias 🙌 Ahora envíame tu dirección completa.";
-  await saveMessage(business.id, customer.id, "assistant", askAddressMessage);
-  await enviarWhatsApp(from, askAddressMessage, business);
+const askAddressMessage = "Gracias 🙌 Ahora envíame tu dirección completa.";
+await replyAndPersist(business, customer, state, from, askAddressMessage);
+return res.sendStatus(200);
 
-  return res.sendStatus(200);
 }
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
   state.perfil.direccion = text.trim();
-  state.etapa = "pidiendo_ciudad";
+state.etapa = "pidiendo_ciudad";
 
-  const askCityMessage = "Perfecto. Ahora envíame tu ciudad.";
-  await saveMessage(business.id, customer.id, "assistant", askCityMessage);
-  await enviarWhatsApp(from, askCityMessage, business);
-
-  return res.sendStatus(200);
+const askCityMessage = "Perfecto. Ahora envíame tu ciudad.";
+await replyAndPersist(business, customer, state, from, askCityMessage);
+return res.sendStatus(200);
 }
 
 // 5) Etapa: pedir ciudad y mostrar resumen
@@ -295,10 +289,10 @@ TOTAL: $${Number(total).toFixed(2)} MXN
 
 ¿Confirmas tu pedido? Responde: confirmo`;
 
-  await saveMessage(business.id, customer.id, "assistant", resumenMessage);
-  await enviarWhatsApp(from, resumenMessage, business);
+await replyAndPersist(business, customer, state, from, resumenMessage);
 
-  return res.sendStatus(200);
+return res.sendStatus(200);
+
 }
 
 // 6) Confirmación final
@@ -536,6 +530,13 @@ async function getCustomerState(businessId, customerId) {
 }
 
 async function saveCustomerState(businessId, customerId, state) {
+
+async function replyAndPersist(business, customer, state, to, text) {
+  await saveMessage(business.id, customer.id, "assistant", text);
+  await saveCustomerState(business.id, customer.id, state);
+  await enviarWhatsApp(to, text, business);
+  return;
+}
   const payload = {
     business_id: businessId,
     customer_id: customerId,
