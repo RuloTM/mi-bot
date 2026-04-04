@@ -358,8 +358,7 @@ if (
   const mensajeProceso =
     "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
 
-  await saveMessage(business.id, customer.id, "assistant", mensajeProceso);
-  await enviarWhatsApp(from, mensajeProceso, business);
+  await replyAndPersist(business, customer, state, from, mensajeProceso);
   return res.sendStatus(200);
 }
 
@@ -531,7 +530,6 @@ async function getCustomerState(businessId, customerId) {
 }
 
 async function saveCustomerState(businessId, customerId, state) {
-async function saveCustomerState(businessId, customerId, state) {
   const payload = {
     business_id: businessId,
     customer_id: customerId,
@@ -549,6 +547,24 @@ async function saveCustomerState(businessId, customerId, state) {
 
   if (error) {
     console.error("❌ Error guardando customer_state:", error);
+  }
+}
+
+async function replyAndPersist(business, customer, state, to, text) {
+  await saveMessage(business.id, customer.id, "assistant", text);
+  await saveCustomerState(business.id, customer.id, state);
+  await enviarWhatsApp(to, text, business);
+}
+
+async function clearCustomerState(businessId, customerId) {
+  const { error } = await supabase
+    .from("customer_states")
+    .delete()
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId);
+
+  if (error) {
+    console.error("❌ Error limpiando customer_state:", error);
   }
 }
 
