@@ -19,6 +19,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static("panel"));
+app.use("/panel", express.static("panel"));
 app.use((req, res, next) => {
   console.log("➡️", req.method, req.path);
   next();
