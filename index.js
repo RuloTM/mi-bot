@@ -236,6 +236,7 @@ Envíame tu nombre completo.`;
 
 await replyAndPersist(business, customer, state, from, askNameMessage);
 return res.sendStatus(200);
+
 }
 
 
@@ -245,58 +246,67 @@ if (state.etapa === "pidiendo_nombre") {
     const invalidNameMessage =
       "Por favor envíame tu nombre completo, por ejemplo: Juan Pérez";
 
-    await saveMessage(business.id, customer.id, "assistant", invalidNameMessage);
-    await enviarWhatsApp(from, invalidNameMessage, business);
+    await replyAndPersist(business, customer, state, from, invalidNameMessage);
     return res.sendStatus(200);
   }
 
-state.perfil.nombre = text.trim();
-state.etapa = "pidiendo_direccion";
+  state.perfil.nombre = text.trim();
+  state.etapa = "pidiendo_ciudad";
 
-const askAddressMessage = "Gracias 🙌 Ahora envíame tu dirección completa.";
-await replyAndPersist(business, customer, state, from, askAddressMessage);
-return res.sendStatus(200);
-
+  const askCityMessage = "Gracias 🙌 Ahora envíame tu ciudad.";
+  await replyAndPersist(business, customer, state, from, askCityMessage);
+  return res.sendStatus(200);
 }
+
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
   state.perfil.direccion = text.trim();
-state.etapa = "pidiendo_ciudad";
-
-const askCityMessage = "Perfecto. Ahora envíame tu ciudad.";
-await replyAndPersist(business, customer, state, from, askCityMessage);
-return res.sendStatus(200);
-}
-
-// 5) Etapa: pedir ciudad y mostrar resumen
-if (state.etapa === "pidiendo_ciudad") {
-  state.perfil.ciudad = text.trim();
   state.etapa = "confirmacion";
 
   const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
   const subtotal = total - shippingCost;
 
-  const resumenMessage = `Perfecto 🙌
+  const resumenMessage = `Perfecto 🙌 Te resumo tu pedido:
 
-Tu pedido:
-📦 ${state.perfil.producto || state.productoSeleccionado?.name || "Producto"}
-💰 $${Number(subtotal).toFixed(2)} MXN
+• Producto: ${state.perfil.producto || state.productoSeleccionado?.name || "Producto"}
+• Nombre: ${state.perfil.nombre || ""}
+• Ciudad: ${state.perfil.ciudad || ""}
+• Pago: ${state.perfil.pago || ""}
+• Dirección: ${state.perfil.direccion || ""}
 
+💰 Subtotal: $${Number(subtotal).toFixed(2)} MXN
 🚚 Envío: $${Number(shippingCost).toFixed(2)} MXN
-
 TOTAL: $${Number(total).toFixed(2)} MXN
 
-¿Confirmas tu pedido? Responde: confirmo`;
+Si todo está correcto, responde: CONFIRMO`;
 
-await replyAndPersist(business, customer, state, from, resumenMessage);
-
-return res.sendStatus(200);
-
+  await replyAndPersist(business, customer, state, from, resumenMessage);
+  return res.sendStatus(200);
 }
 
+// 5) Etapa: pedir ciudad y mostrar resumen
+if (state.etapa === "pidiendo_ciudad") {
+  state.perfil.ciudad = text.trim();
+  state.etapa = "pidiendo_pago";
+
+  const askPaymentMessage = "Perfecto 🙌 ¿Prefieres pagar en efectivo o transferencia?";
+  await replyAndPersist(business, customer, state, from, askPaymentMessage);
+  return res.sendStatus(200);
+
+}
+if (state.etapa === "pidiendo_pago") {
+  state.perfil.pago = text.trim();
+  state.etapa = "pidiendo_direccion";
+
+  const askAddressMessage = "Excelente 🙌 Ahora necesito tu dirección completa de entrega.";
+  await replyAndPersist(business, customer, state, from, askAddressMessage);
+  return res.sendStatus(200);
+}
+
+
 // 6) Confirmación final
-if (state.perfil.confirmado) {
+if (state.etapa === "confirmacion" && textLower === "confirmo") {
   console.log("✅ Detecté confirmación de pedido");
   console.log("🧾 Perfil actual:", state.perfil);
 
@@ -308,8 +318,7 @@ if (state.perfil.confirmado) {
     const missingDataMessage =
       "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
 
-    await saveMessage(business.id, customer.id, "assistant", missingDataMessage);
-    await enviarWhatsApp(from, missingDataMessage, business);
+    await replyAndPersist(business, customer, state, from, missingDataMessage);
     return res.sendStatus(200);
   }
 
@@ -335,15 +344,8 @@ Cantidad: ${pedido.quantity || 1}
 
 En breve te contactaremos para continuar con el pedido.`;
 
-    await saveMessage(
-      business.id,
-      customer.id,
-      "assistant",
-      respuestaConfirmacion
-    );
-
-    await enviarWhatsApp(from, respuestaConfirmacion, business);
-    return res.sendStatus(200);
+  await replyAndPersist(business, customer, state, from, respuestaConfirmacion);
+  return res.sendStatus(200);
   }
 }
 
@@ -372,8 +374,7 @@ if (
   const recordatorio =
     "Solo falta confirmar tu pedido 🙌 Responde: confirmo";
 
-  await saveMessage(business.id, customer.id, "assistant", recordatorio);
-  await enviarWhatsApp(from, recordatorio, business);
+  await replyAndPersist(business, customer, state, from, recordatorio);
   return res.sendStatus(200);
 }
 
@@ -530,13 +531,7 @@ async function getCustomerState(businessId, customerId) {
 }
 
 async function saveCustomerState(businessId, customerId, state) {
-
-async function replyAndPersist(business, customer, state, to, text) {
-  await saveMessage(business.id, customer.id, "assistant", text);
-  await saveCustomerState(business.id, customer.id, state);
-  await enviarWhatsApp(to, text, business);
-  return;
-}
+async function saveCustomerState(businessId, customerId, state) {
   const payload = {
     business_id: businessId,
     customer_id: customerId,
@@ -557,6 +552,11 @@ async function replyAndPersist(business, customer, state, to, text) {
   }
 }
 
+async function replyAndPersist(business, customer, state, to, text) {
+  await saveMessage(business.id, customer.id, "assistant", text);
+  await saveCustomerState(business.id, customer.id, state);
+  await enviarWhatsApp(to, text, business);
+}
 async function clearCustomerState(businessId, customerId) {
   const { error } = await supabase
     .from("customer_states")
