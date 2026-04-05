@@ -215,32 +215,6 @@ if (wantsCatalog) {
   return res.sendStatus(200);
 }
 
-// 2) Cliente quiere comprar
-if (textLower === "1") {
-  const productos = await getBusinessProducts(business.id);
-
-  if (!productos.length) {
-    const noProductsMessage = "No encontré productos disponibles en este momento.";
-    await saveMessage(business.id, customer.id, "assistant", noProductsMessage);
-    await enviarWhatsApp(from, noProductsMessage, business);
-    return res.sendStatus(200);
-  }
-
-state.perfil = {};
-state.productoSeleccionado = productos[0];
-state.perfil.producto = productos[0].name;
-state.etapa = "pidiendo_nombre";
-
-const askNameMessage = `Perfecto 🙌 Elegiste: ${productos[0].name}
-
-Envíame tu nombre completo.`;
-
-await replyAndPersist(business, customer, state, from, askNameMessage);
-return res.sendStatus(200);
-
-}
-
-
 // 3) Etapa: pedir nombre
 if (state.etapa === "pidiendo_nombre") {
   if (!esNombreValido(text)) {
@@ -421,8 +395,8 @@ if (state.etapa === "pedido_finalizado") {
   }
 
   // Si quiere comprar otra vez
-  if (wantsCatalog || textLower === "1") {
-    state.etapa = null;
+  if (wantsCatalog) {
+  state.etapa = null;
   }
 }
 
@@ -952,12 +926,6 @@ async function enviarImagenWhatsApp(to, producto, business) {
       type: "image",
       image: {
         link: producto.image_url,
-
-caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
-
-🔥 Disponible ahora mismo
-¿Te lo aparto o quieres ver otro modelo?`
-
 
               }
     },
