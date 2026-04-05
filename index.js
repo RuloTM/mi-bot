@@ -306,47 +306,42 @@ if (state.etapa === "pidiendo_pago") {
 
 
 // 6) Confirmación final
+
 if (state.etapa === "confirmacion" && textLower === "confirmo") {
-  console.log("✅ Detecté confirmación de pedido");
-  console.log("🧾 Perfil actual:", state.perfil);
 
-  if (
-    !(state.perfil.producto || state.productoSeleccionado?.name) ||
-    !state.perfil.nombre ||
-    !state.perfil.direccion
-  ) {
-    const missingDataMessage =
-      "Antes de confirmar necesito tu nombre completo y dirección de entrega.";
+  console.log("✅ ENTRÓ A CONFIRMAR");
+  console.log("🧾 PERFIL FINAL:", state.perfil);
 
-    await replyAndPersist(business, customer, state, from, missingDataMessage);
-    return res.sendStatus(200);
+  // 🔢 calcular total (puedes ajustar luego)
+  const shippingCost = 0;
+  const total = 900; // ejemplo, luego lo hacemos dinámico
+
+  console.log("💾 INTENTANDO GUARDAR PEDIDO...");
+
+const orderSaved = await saveOrder(
+  business.id,
+  customer.id,
+  state.perfil
+);
+
+  if (!orderSaved) {
+    console.log("❌ NO SE GUARDÓ EL PEDIDO");
+  } else {
+    console.log("✅ PEDIDO GUARDADO CORRECTAMENTE");
   }
 
-  if (!state.perfil.producto && state.productoSeleccionado?.name) {
-    state.perfil.producto = state.productoSeleccionado.name;
-  }
+  const mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
 
-  const pedido = await saveOrder(
-    business.id,
-    customer.id,
-    state.perfil
-  );
+En un momento un asesor te contactará para finalizar tu compra y entrega. ¡Gracias por tu confianza! 😊`;
 
-  if (pedido) {
-    state.etapa = "pedido_finalizado";
-    state.productoSeleccionado = null;
-    state.perfil = {};
+  await saveMessage(business.id, customer.id, "assistant", mensajeFinal);
+  await enviarWhatsApp(from, mensajeFinal, business);
 
-    const respuestaConfirmacion = `✅ Pedido registrado correctamente.
+  state.etapa = "finalizado";
 
-Producto: ${pedido.product || "No especificado"}
-Cantidad: ${pedido.quantity || 1}
+  await saveCustomerState(business.id, customer.id, state);
 
-En breve te contactaremos para continuar con el pedido.`;
-
-  await replyAndPersist(business, customer, state, from, respuestaConfirmacion);
   return res.sendStatus(200);
-  }
 }
 
 // 7) Si hay una compra en proceso, NO usar IA
