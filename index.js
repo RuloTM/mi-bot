@@ -206,7 +206,7 @@ if (wantsCatalog) {
     } else {
       const fallbackText = `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
 
-👉 Responde 1 para comprar`;
+¿Te interesa? Escríbeme el modelo 👌`;
 
       await enviarWhatsApp(from, fallbackText, business);
     }
@@ -955,7 +955,10 @@ async function enviarImagenWhatsApp(to, producto, business) {
 
 caption: `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
 
-👉 Responde *1* para comprar`
+🔥 Disponible ahora mismo
+¿Te lo aparto o quieres ver otro modelo?`
+
+
               }
     },
     {
