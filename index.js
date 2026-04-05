@@ -924,10 +924,10 @@ async function enviarImagenWhatsApp(to, producto, business) {
       messaging_product: "whatsapp",
       to,
       type: "image",
-      image: {
-        link: producto.image_url,
-
-              }
+  image: {
+  link: producto.image_url,
+  caption: `📱 ${producto.name}\n💰 $${Number(producto.price).toFixed(2)} MXN`
+}
     },
     {
       headers: {
