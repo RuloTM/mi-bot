@@ -162,6 +162,7 @@ state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
 
 const textLower = text.toLowerCase().trim();
+console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
 // 🔥 Detectar producto automáticamente desde texto
 const productos = await getBusinessProducts(business.id);
@@ -307,39 +308,55 @@ if (state.etapa === "pidiendo_pago") {
 
 // 6) Confirmación final
 
-if (state.etapa === "confirmacion" && textLower === "confirmo") {
+if (textLower === "confirmo") {
 
-  console.log("✅ ENTRÓ A CONFIRMAR");
-  console.log("🧾 PERFIL FINAL:", state.perfil);
+  console.log("✅ CONFIRMO DETECTADO");
+  console.log("📍 ETAPA ACTUAL:", state.etapa);
+  console.log("🧾 PERFIL:", state.perfil);
 
-  // 🔢 calcular total (puedes ajustar luego)
-  const shippingCost = 0;
-  const total = 900; // ejemplo, luego lo hacemos dinámico
+  // 🔥 VALIDACIÓN IMPORTANTE
+  if (!state.perfil?.nombre || !state.perfil?.direccion) {
+    console.log("❌ FALTAN DATOS, NO GUARDA");
 
-  console.log("💾 INTENTANDO GUARDAR PEDIDO...");
+    const mensajeError = "Aún faltan datos para completar tu pedido 🙏";
 
-const orderSaved = await saveOrder(
-  business.id,
-  customer.id,
-  state.perfil
-);
-
-  if (!orderSaved) {
-    console.log("❌ NO SE GUARDÓ EL PEDIDO");
-  } else {
-    console.log("✅ PEDIDO GUARDADO CORRECTAMENTE");
+    await replyAndPersist(business, customer, state, from, mensajeError);
+    return res.sendStatus(200);
   }
 
-  const mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
+  console.log("💾 GUARDANDO PEDIDO...");
 
-En un momento un asesor te contactará para finalizar tu compra y entrega. ¡Gracias por tu confianza! 😊`;
+  const orderSaved = await saveOrder(
+    business.id,
+    customer.id,
+    state.perfil
+  );
 
-  await saveMessage(business.id, customer.id, "assistant", mensajeFinal);
-  await enviarWhatsApp(from, mensajeFinal, business);
+  if (!orderSaved) {
+    console.log("❌ ERROR GUARDANDO PEDIDO");
 
-  state.etapa = "finalizado";
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Hubo un error al guardar tu pedido 😔 intenta de nuevo."
+    );
 
-  await saveCustomerState(business.id, customer.id, state);
+    return res.sendStatus(200);
+  }
+
+  console.log("✅ PEDIDO GUARDADO:", orderSaved);
+
+  state.etapa = "pedido_finalizado";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "¡Listo! 🎉 Tu pedido ha sido confirmado."
+  );
 
   return res.sendStatus(200);
 }
@@ -562,23 +579,6 @@ async function clearCustomerState(businessId, customerId) {
     console.error("❌ Error limpiando customer_state:", error);
   }
 }
-
-async function replyAndPersist(business, customer, state, to, text) {
-  await saveMessage(business.id, customer.id, "assistant", text);
-  await saveCustomerState(business.id, customer.id, state);
-  await enviarWhatsApp(to, text, business);
-}
-async function clearCustomerState(businessId, customerId) {
-  const { error } = await supabase
-    .from("customer_states")
-    .delete()
-    .eq("business_id", businessId)
-    .eq("customer_id", customerId);
-
-  if (error) {
-    console.error("❌ Error limpiando customer_state:", error);
-  }
-}  
 
 async function calcularTotal(businessId, perfil) {
   const shippingCost = 120;
@@ -1265,5 +1265,8 @@ app.post("/products/:id/toggle", requireAuth, async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
+console.log("🚀 VERSION NUEVA WEBHOOK 2026-04-04 20:00");
 
-app.listen(PORT, () => console.log("Servidor corriendo en puerto", PORT));
+app.listen(PORT, () => {
+  console.log("Servidor corriendo en puerto", PORT);
+});
