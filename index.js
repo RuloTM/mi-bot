@@ -854,7 +854,6 @@ function esNombreValido(texto) {
 
   return true;
 }
-
 async function esNombreRealConIA(texto) {
   const nombre = texto.trim();
 
@@ -869,9 +868,6 @@ async function esNombreRealConIA(texto) {
         {
           role: "system",
           content: `Responde SOLO con "SI" o "NO".
-Determina si el texto parece ser un nombre real de persona en español.
-
-content: `Responde SOLO con "SI" o "NO".
 Determina si el texto parece ser un nombre completo real de persona en español.
 
 Acepta:
