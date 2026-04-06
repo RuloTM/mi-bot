@@ -912,9 +912,8 @@ Reglas:
 }
 
 // 👇 tu función existente
-function extractPerfil(perfil, texto) {
-
-  const t = texto.toLowerCase();
+function extractPerfil(perfil = {}, texto = "") {
+  const t = String(texto || "").toLowerCase();
 
   if (t.includes("monterrey")) perfil.ciudad = "Monterrey";
   if (t.includes("veracruz")) perfil.ciudad = "Veracruz";
@@ -938,21 +937,16 @@ function extractPerfil(perfil, texto) {
     perfil.direccion = texto.trim();
   }
 
-if (
-  t.includes("confirmo") ||
-  t.includes("confirmar") ||
-  t.includes("sí confirmo") ||
-  t.includes("si confirmo") 
-  
-) {
-  perfil.confirmado = true;
-}
-if (
-  !perfil.nombre &&
-  esNombreValido(texto) &&
-  false // 👈 desactivado
-) {
-  perfil.nombre = texto.trim().replace(/\s+/g, " ");
+  if (
+    t.includes("confirmo") ||
+    t.includes("confirmar") ||
+    t.includes("sí confirmo") ||
+    t.includes("si confirmo")
+  ) {
+    perfil.confirmado = true;
+  }
+
+  return perfil;
 }
 
 app.post("/mensaje", async (req, res) => {
