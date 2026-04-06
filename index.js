@@ -947,12 +947,12 @@ if (
 ) {
   perfil.confirmado = true;
 }
-
-  // SOLO sugerir nombre si parece válido, pero sin forzarlo en cualquier mensaje
-//if (!perfil.nombre && esNombreValido(texto) && texto.trim().split(/\s+/).length >= 2) {
-//  perfil.nombre = texto.trim().replace(/\s+/g, " ");
-//}
-  return perfil;
+if (
+  !perfil.nombre &&
+  esNombreValido(texto) &&
+  false // 👈 desactivado
+) {
+  perfil.nombre = texto.trim().replace(/\s+/g, " ");
 }
 
 app.post("/mensaje", async (req, res) => {
