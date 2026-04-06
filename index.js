@@ -216,20 +216,67 @@ if (wantsCatalog) {
 }
 
 // 3) Etapa: pedir nombre
-if (state.etapa === "pidiendo_nombre") {
-  if (!esNombreValido(text)) {
-    const invalidNameMessage =
-      "Por favor envíame tu nombre completo, por ejemplo: Juan Pérez";
 
-    await replyAndPersist(business, customer, state, from, invalidNameMessage);
+if (state.etapa === "pidiendo_nombre") {
+  const nombre = text.trim();
+
+  // validación rápida primero
+  const invalidoRapido =
+    !nombre ||
+    nombre.length < 3 ||
+    /\d/.test(nombre) ||
+    [
+      "catalogo",
+      "catálogo",
+      "hola",
+      "precio",
+      "producto",
+      "productos",
+      "iphone",
+      "samsung",
+      "xiaomi",
+      "motorola",
+      "transferencia",
+      "tarjeta",
+      "veracruz",
+      "monterrey"
+    ].includes(nombre.toLowerCase());
+
+  if (invalidoRapido) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 Por favor escribe tu nombre real para continuar."
+    );
     return res.sendStatus(200);
   }
 
-  state.perfil.nombre = text.trim();
+  // validación con IA
+  const nombreValidoIA = await esNombreRealConIA(nombre);
+
+  if (!nombreValidoIA) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 No pude identificar eso como nombre de persona. Escríbeme tu nombre real, por ejemplo: Enrique Pérez."
+    );
+    return res.sendStatus(200);
+  }
+
+  state.perfil.nombre = nombre;
   state.etapa = "pidiendo_ciudad";
 
-  const askCityMessage = "Gracias 🙌 Ahora envíame tu ciudad.";
-  await replyAndPersist(business, customer, state, from, askCityMessage);
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
+  );
   return res.sendStatus(200);
 }
 
@@ -798,6 +845,53 @@ function esNombreValido(texto) {
   if (palabras.some(p => prohibidas.has(p.toLowerCase()))) return false;
 
   return true;
+}
+
+async function esNombreRealConIA(texto) {
+  const nombre = texto.trim();
+
+  if (!nombre) return false;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_tokens: 5,
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: `Responde SOLO con "SI" o "NO".
+Determina si el texto parece ser un nombre real de persona en español.
+
+Acepta:
+- Juan
+- Juan Perez
+- María Fernanda
+- Enrique Pérez
+
+Rechaza:
+- catalogo
+- hola
+- iphone 13
+- samsung
+- precio
+- transferencia
+- veracruz
+- calle rio bamba 57`
+        },
+        {
+          role: "user",
+          content: nombre
+        }
+      ]
+    });
+
+    const respuesta = completion.choices?.[0]?.message?.content?.trim().toUpperCase();
+    return respuesta === "SI";
+  } catch (error) {
+    console.error("❌ Error validando nombre con IA:", error);
+    return false;
+  }
 }
 
 // 👇 tu función existente
