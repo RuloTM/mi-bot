@@ -306,19 +306,36 @@ if (textLower === "confirmo") {
     state.perfil
   );
 
-  if (!orderSaved) {
-    console.log("❌ ERROR GUARDANDO PEDIDO");
+if (!orderSaved) {
+  console.log("❌ Producto no disponible");
 
+  const productos = await getBusinessProducts(business.id);
+
+  if (productos.length) {
     await replyAndPersist(
       business,
       customer,
       state,
       from,
-      "Hubo un error al guardar tu pedido 😔 intenta de nuevo."
+      "Ese modelo no está disponible 😕\n\nPero tengo otras opciones 🔥 te las muestro 👇"
     );
 
-    return res.sendStatus(200);
+    for (const producto of productos.slice(0, 3)) {
+      await enviarImagenWhatsApp(from, producto, business);
+    }
+
+  } else {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Ese producto no está disponible en este momento 😕"
+    );
   }
+
+  return res.sendStatus(200);
+}
 
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
 
