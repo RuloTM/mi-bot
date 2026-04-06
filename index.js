@@ -256,33 +256,6 @@ if (state.etapa === "pidiendo_nombre") {
   );
   return res.sendStatus(200);
 }
-
-  const nombreValidoIA = await esNombreRealConIA(nombre);
-
-  if (!nombreValidoIA) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "🙏 No pude identificar eso como nombre de persona. Escríbeme tu nombre completo, por ejemplo: Enrique Pérez."
-    );
-    return res.sendStatus(200);
-  }
-
-  state.perfil.nombre = nombre;
-  state.etapa = "pidiendo_ciudad";
-
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
-  );
-  return res.sendStatus(200);
-}
-
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
   state.perfil.direccion = text.trim();
@@ -986,10 +959,9 @@ if (
 }
 
   // SOLO sugerir nombre si parece válido, pero sin forzarlo en cualquier mensaje
-if (!perfil.nombre && esNombreValido(texto)) {
+if (!perfil.nombre && esNombreValido(texto) && texto.trim().split(/\s+/).length >= 2) {
   perfil.nombre = texto.trim().replace(/\s+/g, " ");
 }
-
   return perfil;
 }
 
