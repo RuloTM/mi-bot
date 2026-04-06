@@ -218,50 +218,44 @@ if (wantsCatalog) {
 // 3) Etapa: pedir nombre
 
 if (state.etapa === "pidiendo_nombre") {
-  const nombre = text.trim().replace(/\s+/g, " ");
+  const nombre = String(text || "").trim().replace(/\s+/g, " ");
 
-  const nombreLower = nombre.toLowerCase();
-
-  // rechazo rápido de cosas obvias
-  const invalidoRapido =
-    !nombre ||
-    nombre.length < 5 ||
-    /\d/.test(nombre) ||
-    nombre.split(" ").length < 2 || // exigir nombre completo
-    [
-      "catalogo",
-      "catálogo",
-      "catalgo",
-      "catalg",
-      "hola",
-      "precio",
-      "producto",
-      "productos",
-      "iphone",
-      "samsung",
-      "xiaomi",
-      "motorola",
-      "transferencia",
-      "tarjeta",
-      "veracruz",
-      "monterrey"
-    ].includes(nombreLower) ||
-    nombreLower.includes("catalog") ||
-    nombreLower.includes("catalg") ||
-    nombreLower.includes("iphone") ||
-    nombreLower.includes("samsung") ||
-    nombreLower.includes("precio");
-
-  if (invalidoRapido) {
+  if (!esNombreValido(nombre)) {
     await replyAndPersist(
       business,
       customer,
       state,
       from,
-      "🙏 Por favor escríbeme tu nombre completo para continuar, por ejemplo: Enrique Pérez."
+      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
     );
     return res.sendStatus(200);
   }
+
+  const nombreValidoIA = await esNombreRealConIA(nombre);
+
+  if (!nombreValidoIA) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
+
+  state.perfil.nombre = nombre;
+  state.etapa = "pidiendo_ciudad";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
+  );
+  return res.sendStatus(200);
+}
 
   const nombreValidoIA = await esNombreRealConIA(nombre);
 
@@ -827,69 +821,117 @@ function getClientState(clienteId) {
   }
   return memory[clienteId];
 }
+
+function normalizarTexto(texto = "") {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+const PALABRAS_PROHIBIDAS_NOMBRE = new Set([
+  "catalogo", "catalogos", "catalog", "catálogo", "catalgo", "catalg",
+  "producto", "productos", "precio", "precios", "costos",
+  "hola", "buenas", "bueno", "ok", "va", "sale", "si", "sí", "confirmo",
+  "quiero", "comprar", "pedido", "envio", "envío", "direccion", "dirección",
+  "calle", "colonia", "col", "cp", "c.p", "ciudad", "estado",
+  "tarjeta", "transferencia", "efectivo",
+  "iphone", "samsung", "xiaomi", "motorola", "huawei",
+  "negra", "blanca", "azul", "roja", "verde",
+  "veracruz", "monterrey", "cdmx", "mexico", "méxico"
+]);
+
 function esNombreValido(texto) {
-  const limpio = texto.trim().replace(/\s+/g, " ");
+  const limpio = String(texto || "").trim().replace(/\s+/g, " ");
+  const normalizado = normalizarTexto(limpio);
 
   if (!limpio) return false;
+  if (limpio.length < 6 || limpio.length > 60) return false;
   if (/\d/.test(limpio)) return false;
   if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(limpio)) return false;
 
-  const palabras = limpio.split(" ");
+  const palabras = limpio.split(" ").filter(Boolean);
+  const palabrasNormalizadas = normalizado.split(" ").filter(Boolean);
 
+  // exigir al menos nombre + apellido
   if (palabras.length < 2 || palabras.length > 4) return false;
-  if (palabras.some(p => p.length < 2)) return false;
 
-  const prohibidas = new Set([
-    "catalogo", "catálogo", "productos", "producto",
-    "quiero", "comprar", "precio", "precios",
-    "menu", "menú", "iphone", "funda", "fundas",
-    "negra", "blanca", "azul", "roja",
-    "si", "sí", "ok", "va", "confirmo",
-    "transferencia", "tarjeta",
-    "calle", "colonia", "col", "cp", "c.p",
-    "envio", "envío", "veracruz", "monterrey"
-  ]);
+  // cada palabra debe parecer humana
+  if (palabras.some(p => p.length < 2 || p.length > 20)) return false;
 
-  if (palabras.some(p => prohibidas.has(p.toLowerCase()))) return false;
+  // bloquear palabras prohibidas exactas
+  if (palabrasNormalizadas.some(p => PALABRAS_PROHIBIDAS_NOMBRE.has(p))) return false;
+
+  // bloquear frases sospechosas
+  const sospechosas = [
+    "catalog",
+    "catalg",
+    "precio",
+    "producto",
+    "transfer",
+    "envio",
+    "direccion",
+    "calle",
+    "colonia",
+    "iphone",
+    "samsung"
+  ];
+
+  if (sospechosas.some(s => normalizado.includes(s))) return false;
+
+  // evitar repeticiones tipo "juan juan" o "hola hola"
+  const unicas = new Set(palabrasNormalizadas);
+  if (unicas.size < palabrasNormalizadas.length - 1) return false;
 
   return true;
 }
-async function esNombreRealConIA(texto) {
-  const nombre = texto.trim();
 
-  if (!nombre) return false;
+async function esNombreRealConIA(texto) {
+  const nombre = String(texto || "").trim().replace(/\s+/g, " ");
+
+  if (!esNombreValido(nombre)) return false;
 
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      max_tokens: 5,
       temperature: 0,
+      max_tokens: 3,
       messages: [
         {
           role: "system",
-          content: `Responde SOLO con "SI" o "NO".
-Determina si el texto parece ser un nombre completo real de persona en español.
+          content: `
+Responde SOLO con SI o NO.
 
-Acepta:
-- Enrique Pérez
-- Juan Ramírez
-- María Fernanda López
+Tu tarea es decidir si el texto parece un nombre real de persona en español.
 
-Rechaza:
+ACEPTA:
+- Juan Pérez
+- María López
+- José Manuel Ramírez
+- Ana Sofía Torres
+
+RECHAZA:
 - catalogo
 - catalgo
 - hola
+- precio
 - iphone 13
 - samsung
-- precio
 - transferencia
-- veracruz
 - calle rio bamba 57
+- Veracruz
+- Quiero el catálogo
+- Juan iphone
+- Nombre completo
 
-IMPORTANTE:
-- Rechaza palabras sueltas que no parezcan nombre real.
-- Rechaza textos con errores obvios tipo "catalgo".
-- Solo acepta si parece nombre completo de persona.`
+Reglas:
+- Debe parecer nombre y apellido de persona.
+- No aceptes productos, ciudades, saludos, métodos de pago ni direcciones.
+- No aceptes frases comerciales.
+- Si tienes duda, responde NO.
+          `.trim()
         },
         {
           role: "user",
@@ -943,37 +985,10 @@ if (
   perfil.confirmado = true;
 }
 
-  if (!perfil.nombre && esNombreValido(texto)) {
-    const contieneNumero = /\d/.test(texto);
-
-    const palabrasBloqueadas = [
-      "iphone",
-      "funda",
-      "pieza",
-      "piezas",
-      "unidad",
-      "unidades",
-      "tarjeta",
-      "transferencia",
-      "calle",
-      "col",
-      "colonia",
-      "cp",
-      "veracruz",
-      "monterrey",
-      "confirmo"
-    ];
-
-    const contieneBloqueada = palabrasBloqueadas.some(p => t.includes(p));
-
-    if (!contieneNumero && !contieneBloqueada) {
-      const palabras = texto.trim().split(" ");
-
-      if (palabras.length >= 2 && palabras.length <= 4) {
-        perfil.nombre = texto.trim();
-      }
-    }
-  }
+  // SOLO sugerir nombre si parece válido, pero sin forzarlo en cualquier mensaje
+if (!perfil.nombre && esNombreValido(texto)) {
+  perfil.nombre = texto.trim().replace(/\s+/g, " ");
+}
 
   return perfil;
 }
