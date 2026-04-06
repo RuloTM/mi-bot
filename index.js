@@ -218,16 +218,21 @@ if (wantsCatalog) {
 // 3) Etapa: pedir nombre
 
 if (state.etapa === "pidiendo_nombre") {
-  const nombre = text.trim();
+  const nombre = text.trim().replace(/\s+/g, " ");
 
-  // validación rápida primero
+  const nombreLower = nombre.toLowerCase();
+
+  // rechazo rápido de cosas obvias
   const invalidoRapido =
     !nombre ||
-    nombre.length < 3 ||
+    nombre.length < 5 ||
     /\d/.test(nombre) ||
+    nombre.split(" ").length < 2 || // exigir nombre completo
     [
       "catalogo",
       "catálogo",
+      "catalgo",
+      "catalg",
       "hola",
       "precio",
       "producto",
@@ -240,7 +245,12 @@ if (state.etapa === "pidiendo_nombre") {
       "tarjeta",
       "veracruz",
       "monterrey"
-    ].includes(nombre.toLowerCase());
+    ].includes(nombreLower) ||
+    nombreLower.includes("catalog") ||
+    nombreLower.includes("catalg") ||
+    nombreLower.includes("iphone") ||
+    nombreLower.includes("samsung") ||
+    nombreLower.includes("precio");
 
   if (invalidoRapido) {
     await replyAndPersist(
@@ -248,12 +258,11 @@ if (state.etapa === "pidiendo_nombre") {
       customer,
       state,
       from,
-      "🙏 Por favor escribe tu nombre real para continuar."
+      "🙏 Por favor escríbeme tu nombre completo para continuar, por ejemplo: Enrique Pérez."
     );
     return res.sendStatus(200);
   }
 
-  // validación con IA
   const nombreValidoIA = await esNombreRealConIA(nombre);
 
   if (!nombreValidoIA) {
@@ -262,7 +271,7 @@ if (state.etapa === "pidiendo_nombre") {
       customer,
       state,
       from,
-      "🙏 No pude identificar eso como nombre de persona. Escríbeme tu nombre real, por ejemplo: Enrique Pérez."
+      "🙏 No pude identificar eso como nombre de persona. Escríbeme tu nombre completo, por ejemplo: Enrique Pérez."
     );
     return res.sendStatus(200);
   }
@@ -279,7 +288,6 @@ if (state.etapa === "pidiendo_nombre") {
   );
   return res.sendStatus(200);
 }
-
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
@@ -863,21 +871,29 @@ async function esNombreRealConIA(texto) {
           content: `Responde SOLO con "SI" o "NO".
 Determina si el texto parece ser un nombre real de persona en español.
 
+content: `Responde SOLO con "SI" o "NO".
+Determina si el texto parece ser un nombre completo real de persona en español.
+
 Acepta:
-- Juan
-- Juan Perez
-- María Fernanda
 - Enrique Pérez
+- Juan Ramírez
+- María Fernanda López
 
 Rechaza:
 - catalogo
+- catalgo
 - hola
 - iphone 13
 - samsung
 - precio
 - transferencia
 - veracruz
-- calle rio bamba 57`
+- calle rio bamba 57
+
+IMPORTANTE:
+- Rechaza palabras sueltas que no parezcan nombre real.
+- Rechaza textos con errores obvios tipo "catalgo".
+- Solo acepta si parece nombre completo de persona.`
         },
         {
           role: "user",
