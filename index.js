@@ -1,3 +1,5 @@
+console.log("🚀 VERSION RENDER CORRECTA d5776d9");
+
 require("dotenv").config();
 
 const express = require("express");
@@ -222,16 +224,8 @@ if (state.etapa === "pidiendo_nombre") {
   console.log("📌 Texto recibido como nombre:", nombre);
   console.log("📌 esNombreValido:", esNombreValido(nombre));
 
-
-const nombreNormalizado = normalizarTexto(nombre);
-
-if (
-  !esNombreValido(nombre) ||
-  nombreNormalizado.includes("catalog") ||
-  nombreNormalizado.includes("catalg")
-) { 
-
-     await replyAndPersist(
+  if (!esNombreValido(nombre)) {
+    await replyAndPersist(
       business,
       customer,
       state,
@@ -242,6 +236,7 @@ if (
   }
 
   const nombreValidoIA = await esNombreRealConIA(nombre);
+  console.log("📌 esNombreRealConIA:", nombreValidoIA);
 
   if (!nombreValidoIA) {
     await replyAndPersist(
@@ -266,6 +261,7 @@ if (
   );
   return res.sendStatus(200);
 }
+
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
   state.perfil.direccion = text.trim();
@@ -810,7 +806,7 @@ function normalizarTexto(texto = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .trim()
+    .trim()	
     .replace(/\s+/g, " ");
 }
 
@@ -953,9 +949,9 @@ if (
 }
 
   // SOLO sugerir nombre si parece válido, pero sin forzarlo en cualquier mensaje
-if (!perfil.nombre && esNombreValido(texto) && texto.trim().split(/\s+/).length >= 2) {
-  perfil.nombre = texto.trim().replace(/\s+/g, " ");
-}
+//if (!perfil.nombre && esNombreValido(texto) && texto.trim().split(/\s+/).length >= 2) {
+//  perfil.nombre = texto.trim().replace(/\s+/g, " ");
+//}
   return perfil;
 }
 
