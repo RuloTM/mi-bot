@@ -219,9 +219,19 @@ if (wantsCatalog) {
 
 if (state.etapa === "pidiendo_nombre") {
   const nombre = String(text || "").trim().replace(/\s+/g, " ");
+  console.log("📌 Texto recibido como nombre:", nombre);
+  console.log("📌 esNombreValido:", esNombreValido(nombre));
 
-  if (!esNombreValido(nombre)) {
-    await replyAndPersist(
+
+const nombreNormalizado = normalizarTexto(nombre);
+
+if (
+  !esNombreValido(nombre) ||
+  nombreNormalizado.includes("catalog") ||
+  nombreNormalizado.includes("catalg")
+) { 
+
+     await replyAndPersist(
       business,
       customer,
       state,
@@ -806,14 +816,11 @@ function normalizarTexto(texto = "") {
 
 const PALABRAS_PROHIBIDAS_NOMBRE = new Set([
   "catalogo", "catalogos", "catalog", "catálogo", "catalgo", "catalg",
-  "producto", "productos", "precio", "precios", "costos",
-  "hola", "buenas", "bueno", "ok", "va", "sale", "si", "sí", "confirmo",
-  "quiero", "comprar", "pedido", "envio", "envío", "direccion", "dirección",
-  "calle", "colonia", "col", "cp", "c.p", "ciudad", "estado",
-  "tarjeta", "transferencia", "efectivo",
-  "iphone", "samsung", "xiaomi", "motorola", "huawei",
-  "negra", "blanca", "azul", "roja", "verde",
-  "veracruz", "monterrey", "cdmx", "mexico", "méxico"
+  "producto", "productos", "precio", "precios", "costo", "costos",
+  "hola", "buenas", "bueno", "ok", "va", "sale", "si", "sí",
+  "quiero", "pedido", "envio", "envío", "direccion", "dirección",
+  "calle", "colonia", "col", "cp", "ciudad", "estado",
+  "tarjeta", "transferencia", "efectivo"
 ]);
 
 function esNombreValido(texto) {
@@ -828,16 +835,10 @@ function esNombreValido(texto) {
   const palabras = limpio.split(" ").filter(Boolean);
   const palabrasNormalizadas = normalizado.split(" ").filter(Boolean);
 
-  // exigir al menos nombre + apellido
   if (palabras.length < 2 || palabras.length > 4) return false;
-
-  // cada palabra debe parecer humana
   if (palabras.some(p => p.length < 2 || p.length > 20)) return false;
-
-  // bloquear palabras prohibidas exactas
   if (palabrasNormalizadas.some(p => PALABRAS_PROHIBIDAS_NOMBRE.has(p))) return false;
 
-  // bloquear frases sospechosas
   const sospechosas = [
     "catalog",
     "catalg",
@@ -846,17 +847,10 @@ function esNombreValido(texto) {
     "transfer",
     "envio",
     "direccion",
-    "calle",
-    "colonia",
-    "iphone",
-    "samsung"
+    "calle"
   ];
 
   if (sospechosas.some(s => normalizado.includes(s))) return false;
-
-  // evitar repeticiones tipo "juan juan" o "hola hola"
-  const unicas = new Set(palabrasNormalizadas);
-  if (unicas.size < palabrasNormalizadas.length - 1) return false;
 
   return true;
 }
