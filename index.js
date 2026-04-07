@@ -176,18 +176,36 @@ if (productoDetectado) {
   state.productoSeleccionado = productoDetectado;
   state.perfil.producto = productoDetectado.name;
 }
+if (
+  state.productoSeleccionado &&
+  !state.perfil.nombre &&
+  !state.etapa
+) {
+  state.etapa = "pidiendo_nombre";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "¡Perfecto! 🎉 Para confirmar tu compra, necesito algunos datos. Primero, ¿cómo te llamas?"
+  );
+  return res.sendStatus(200);
+}
 
 // 1) Catálogo primero
 const wantsCatalog =
-  textLower.includes("catalogo") ||
-  textLower.includes("catálogo") ||
-  textLower.includes("productos") ||
-  textLower.includes("qué vendes") ||
-  textLower.includes("que vendes") ||
-  textLower.includes("qué tienes") ||
-  textLower.includes("que tienes") ||
-  textLower.includes("menu") ||
-  textLower.includes("menú");
+  !state.etapa && (
+    textLower.includes("catalogo") ||
+    textLower.includes("catálogo") ||
+    textLower.includes("productos") ||
+    textLower.includes("qué vendes") ||
+    textLower.includes("que vendes") ||
+    textLower.includes("qué tienes") ||
+    textLower.includes("que tienes") ||
+    textLower.includes("menu") ||
+    textLower.includes("menú")
+  );
 
 if (wantsCatalog) {
   console.log("🔥 Entrando a catálogo");
@@ -446,7 +464,25 @@ if (state.etapa === "pedido_finalizado") {
 }
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
+
 const respuesta = await procesarMensaje(from, text, business.prompt);
+
+// 🔒 Si la IA está pidiendo el nombre, activar etapa manual
+const respuestaLower = String(respuesta || "").toLowerCase();
+
+if (
+  !state.etapa &&
+  !state.perfil.nombre &&
+  (
+    respuestaLower.includes("cómo te llamas") ||
+    respuestaLower.includes("como te llamas") ||
+    respuestaLower.includes("tu nombre") ||
+    respuestaLower.includes("nombre completo")
+  )
+) {
+  state.etapa = "pidiendo_nombre";
+  console.log("🟡 Etapa activada por respuesta IA: pidiendo_nombre");
+}
 
 console.log("📤 Enviando respuesta a:", from);
 console.log("🤖 WhatsApp OUT:", respuesta);
@@ -459,8 +495,6 @@ await saveMessage(
 );
 
 await enviarWhatsApp(from, respuesta, business);
-
-// 🔥 GUARDAR ESTADO AQUÍ (UNA SOLA VEZ)
 
 await saveCustomerState(business.id, customer.id, state);
 return res.sendStatus(200);
