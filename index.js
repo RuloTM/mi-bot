@@ -172,32 +172,51 @@ if (!state || typeof state !== "object") {
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
 
-const textLower = text.toLowerCase().trim();
-console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
+// 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
 
-// 🔥 Detectar producto automáticamente desde texto
-const productos = await getBusinessProducts(business.id);
-const productoDetectado = findProductFromText(productos, text);
-
-if (productoDetectado) {
-  console.log("🧠 Producto detectado:", productoDetectado.name);
-
-  state.productoSeleccionado = productoDetectado;
-  state.perfil.producto = productoDetectado.name;
-}
 if (
   state.productoSeleccionado &&
-  !state.perfil.nombre &&
-  !state.etapa
+  !state.perfil.nombre
 ) {
   state.etapa = "pidiendo_nombre";
+
+  const nombre = String(text || "").trim().replace(/\s+/g, " ");
+  console.log("📌 PRIORIDAD NOMBRE:", nombre);
+  console.log("📌 esNombreValido:", esNombreValido(nombre));
+
+  if (!esNombreValido(nombre)) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
+
+  const nombreValidoIA = await esNombreRealConIA(nombre);
+
+  if (!nombreValidoIA) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
+
+  state.perfil.nombre = nombre;
+  state.etapa = "pidiendo_ciudad";
 
   await replyAndPersist(
     business,
     customer,
     state,
     from,
-    "¡Perfecto! 🎉 Para confirmar tu compra, necesito algunos datos. Primero, ¿cómo te llamas?"
+    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
   );
   return res.sendStatus(200);
 }
@@ -245,52 +264,6 @@ if (wantsCatalog) {
 }
 
 // 3) Etapa: pedir nombre
-
-if (
-  state.etapa === "pidiendo_nombre" ||
-  (state.productoSeleccionado && !state.perfil.nombre)
-) {
-  const nombre = String(text || "").trim().replace(/\s+/g, " ");
-  console.log("📌 Texto recibido como nombre:", nombre);
-  console.log("📌 esNombreValido:", esNombreValido(nombre));
-
-  if (!esNombreValido(nombre)) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
-    );
-    return res.sendStatus(200);
-  }
-
-  const nombreValidoIA = await esNombreRealConIA(nombre);
-  console.log("📌 esNombreRealConIA:", nombreValidoIA);
-
-  if (!nombreValidoIA) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
-    );
-    return res.sendStatus(200);
-  }
-
-  state.perfil.nombre = nombre;
-  state.etapa = "pidiendo_ciudad";
-
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
-  );
-  return res.sendStatus(200);
-}
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
@@ -413,113 +386,61 @@ if (!orderSaved) {
 // 7) Si hay una compra en proceso, NO usar IA
 console.log("🧠 PRE-IA STATE:", JSON.stringify(state));
 
-if (
-  (state.productoSeleccionado && !state.perfil.nombre) ||
-  (state.etapa && state.etapa !== "confirmacion" && state.etapa !== "pedido_finalizado")
-) {
-  // Si ya hay producto pero aún no hay nombre, forzar validación de nombre
-  if (state.productoSeleccionado && !state.perfil.nombre) {
-    state.etapa = "pidiendo_nombre";
+if (state.productoSeleccionado && !state.perfil.nombre) {
+  state.etapa = "pidiendo_nombre";
 
-    const nombre = String(text || "").trim().replace(/\s+/g, " ");
-    console.log("📌 Texto recibido como nombre:", nombre);
-    console.log("📌 esNombreValido:", esNombreValido(nombre));
+  const nombre = String(text || "").trim().replace(/\s+/g, " ");
+  console.log("📌 Texto recibido como nombre:", nombre);
+  console.log("📌 esNombreValido:", esNombreValido(nombre));
 
-    if (!esNombreValido(nombre)) {
-      await replyAndPersist(
-        business,
-        customer,
-        state,
-        from,
-        "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
-      );
-      return res.sendStatus(200);
-    }
-
-    const nombreValidoIA = await esNombreRealConIA(nombre);
-    console.log("📌 esNombreRealConIA:", nombreValidoIA);
-
-    if (!nombreValidoIA) {
-      await replyAndPersist(
-        business,
-        customer,
-        state,
-        from,
-        "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
-      );
-      return res.sendStatus(200);
-    }
-
-    state.perfil.nombre = nombre;
-    state.etapa = "pidiendo_ciudad";
-
+  if (!esNombreValido(nombre)) {
     await replyAndPersist(
       business,
       customer,
       state,
       from,
-      `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
+      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
     );
     return res.sendStatus(200);
   }
 
+  const nombreValidoIA = await esNombreRealConIA(nombre);
+  console.log("📌 esNombreRealConIA:", nombreValidoIA);
+
+  if (!nombreValidoIA) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
+
+  state.perfil.nombre = nombre;
+  state.etapa = "pidiendo_ciudad";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
+  );
+  return res.sendStatus(200);
+}
+
+if (
+  state.etapa &&
+  state.etapa !== "confirmacion" &&
+  state.etapa !== "pedido_finalizado"
+) {
   const mensajeProceso =
     "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
 
   await replyAndPersist(business, customer, state, from, mensajeProceso);
   return res.sendStatus(200);
-}	
-
-// 🔒 Si ya tenemos datos completos, NO dejar que IA intervenga
-if (
-  state.perfil.nombre &&
-  state.perfil.direccion &&
-  state.perfil.ciudad &&
-  state.perfil.producto &&
-  !state.perfil.confirmado
-) {
-  const recordatorio =
-    "Solo falta confirmar tu pedido 🙌 Responde: confirmo";
-
-  await replyAndPersist(business, customer, state, from, recordatorio);
-  return res.sendStatus(200);
-}
-
-// 🧠 Manejo post-compra (EVITA respuestas incoherentes)
-if (state.etapa === "pedido_finalizado") {
-  const acknowledgements = [
-    "ok",
-    "gracias",
-    "sale",
-    "va",
-    "perfecto",
-    "excelente",
-    "bien"
-  ];
-
-  if (acknowledgements.includes(textLower)) {
-    // 👇 respuestas variables tipo humano
-    const respuestas = [
-      "Gracias 🙌 Tu pedido ya quedó registrado.",
-      "Perfecto 🙌 Ya tenemos tu pedido.",
-      "Listo ✅ Todo quedó registrado correctamente.",
-      "Excelente 👍 En breve te contactamos.",
-      "Ya quedó 👌 Gracias por tu compra."
-    ];
-
-    const mensaje =
-      respuestas[Math.floor(Math.random() * respuestas.length)];
-
-    await saveMessage(business.id, customer.id, "assistant", mensaje);
-    await enviarWhatsApp(from, mensaje, business);
-
-    return res.sendStatus(200);
-  }
-
-  // Si quiere comprar otra vez
-  if (wantsCatalog) {
-  state.etapa = null;
-  }
 }
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
