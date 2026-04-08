@@ -410,22 +410,55 @@ if (!orderSaved) {
   return res.sendStatus(200);
 }
 
+// 7) Si hay una compra en proceso, NO usar IA
 console.log("🧠 PRE-IA STATE:", JSON.stringify(state));
 
-// 7) Si hay una compra en proceso, NO usar IA
 if (
   (state.productoSeleccionado && !state.perfil.nombre) ||
   (state.etapa && state.etapa !== "confirmacion" && state.etapa !== "pedido_finalizado")
 ) {
+  // Si ya hay producto pero aún no hay nombre, forzar validación de nombre
   if (state.productoSeleccionado && !state.perfil.nombre) {
     state.etapa = "pidiendo_nombre";
+
+    const nombre = String(text || "").trim().replace(/\s+/g, " ");
+    console.log("📌 Texto recibido como nombre:", nombre);
+    console.log("📌 esNombreValido:", esNombreValido(nombre));
+
+    if (!esNombreValido(nombre)) {
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+      );
+      return res.sendStatus(200);
+    }
+
+    const nombreValidoIA = await esNombreRealConIA(nombre);
+    console.log("📌 esNombreRealConIA:", nombreValidoIA);
+
+    if (!nombreValidoIA) {
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
+      );
+      return res.sendStatus(200);
+    }
+
+    state.perfil.nombre = nombre;
+    state.etapa = "pidiendo_ciudad";
 
     await replyAndPersist(
       business,
       customer,
       state,
       from,
-      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+      `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
     );
     return res.sendStatus(200);
   }
