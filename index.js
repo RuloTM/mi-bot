@@ -172,6 +172,9 @@ if (!state || typeof state !== "object") {
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
 
+const textLower = String(text || "").toLowerCase().trim();
+console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
+
 // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
 
 if (
