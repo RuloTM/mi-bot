@@ -159,6 +159,15 @@ if (!customer) return res.sendStatus(200);
 await saveMessage(business.id, customer.id, "user", text);
 
 let state = await getCustomerState(business.id, customer.id);
+console.log("🧠 STATE CARGADO:", JSON.stringify(state));
+
+if (!state || typeof state !== "object") {
+  state = {
+    etapa: null,
+    perfil: {},
+    carrito: []
+  };
+}
 
 state.perfil = state.perfil || {};
 state.perfil = extractPerfil(state.perfil, text);
@@ -237,7 +246,10 @@ if (wantsCatalog) {
 
 // 3) Etapa: pedir nombre
 
-if (state.etapa === "pidiendo_nombre") {
+if (
+  state.etapa === "pidiendo_nombre" ||
+  (state.productoSeleccionado && !state.perfil.nombre)
+) {
   const nombre = String(text || "").trim().replace(/\s+/g, " ");
   console.log("📌 Texto recibido como nombre:", nombre);
   console.log("📌 esNombreValido:", esNombreValido(nombre));
@@ -398,18 +410,32 @@ if (!orderSaved) {
   return res.sendStatus(200);
 }
 
+console.log("🧠 PRE-IA STATE:", JSON.stringify(state));
+
 // 7) Si hay una compra en proceso, NO usar IA
 if (
-  state.etapa &&
-  state.etapa !== "confirmacion" &&
-  state.etapa !== "pedido_finalizado"
+  (state.productoSeleccionado && !state.perfil.nombre) ||
+  (state.etapa && state.etapa !== "confirmacion" && state.etapa !== "pedido_finalizado")
 ) {
+  if (state.productoSeleccionado && !state.perfil.nombre) {
+    state.etapa = "pidiendo_nombre";
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
+
   const mensajeProceso =
     "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
 
   await replyAndPersist(business, customer, state, from, mensajeProceso);
   return res.sendStatus(200);
-}
+}	
 
 // 🔒 Si ya tenemos datos completos, NO dejar que IA intervenga
 if (
