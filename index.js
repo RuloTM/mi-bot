@@ -121,108 +121,107 @@ app.get("/webhook", (req, res) => {
   return res.sendStatus(403);
 });
 
-
 app.post("/webhook", async (req, res) => {
-console.log("📲 WEBHOOK RECIBIDO");
-console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
+  console.log("📲 WEBHOOK RECIBIDO");
+  console.log("📲 BODY COMPLETO:", JSON.stringify(req.body, null, 2));
 
   try {
     const entry = req.body.entry?.[0];
     const changes = entry?.changes?.[0]?.value;
     const message = changes?.messages?.[0];
 
-if (!message) {
-  return res.sendStatus(200);
-}
+    if (!message) {
+      return res.sendStatus(200);
+    }
 
     const from = message.from;
     const text = message.text?.body || "";
     console.log("📩 TEXTO RECIBIDO:", text);
 
-const phoneNumberId = changes?.metadata?.phone_number_id;
+    const phoneNumberId = changes?.metadata?.phone_number_id;
 
-// 🔥 IGNORAR EVENTOS DE PRUEBA DE META
-if (phoneNumberId !== "1024966857372614") {
-  console.log("⚠️ Evento ignorado (no es tu número):", phoneNumberId);
-  return res.sendStatus(200);
-}
+    // 🔥 IGNORAR EVENTOS DE PRUEBA DE META
+    if (phoneNumberId !== "1024966857372614") {
+      console.log("⚠️ Evento ignorado (no es tu número):", phoneNumberId);
+      return res.sendStatus(200);
+    }
 
-const business = await getBusiness(phoneNumberId);
-if (!business) {
-  console.log("⚠️ Negocio no encontrado para:", phoneNumberId);
-  return res.sendStatus(200);
-}
+    const business = await getBusiness(phoneNumberId);
+    if (!business) {
+      console.log("⚠️ Negocio no encontrado para:", phoneNumberId);
+      return res.sendStatus(200);
+    }
 
-const customer = await getOrCreateCustomer(business.id, from);
-if (!customer) return res.sendStatus(200);
+    const customer = await getOrCreateCustomer(business.id, from);
+    if (!customer) return res.sendStatus(200);
 
-await saveMessage(business.id, customer.id, "user", text);
+    await saveMessage(business.id, customer.id, "user", text);
 
-let state = await getCustomerState(business.id, customer.id);
-console.log("🧠 STATE CARGADO:", JSON.stringify(state));
+    let state = await getCustomerState(business.id, customer.id);
+    console.log("🧠 STATE CARGADO:", JSON.stringify(state));
 
-if (!state || typeof state !== "object") {
-  state = {
-    etapa: null,
-    perfil: {},
-    carrito: []
-  };
-}
+    if (!state || typeof state !== "object") {
+      state = {
+        etapa: null,
+        perfil: {},
+        carrito: [],
+        productoSeleccionado: null
+      };
+    }
 
-state.perfil = state.perfil || {};
-state.perfil = extractPerfil(state.perfil, text);
+    state.perfil = state.perfil || {};
+    state.perfil = extractPerfil(state.perfil, text);
 
-const textLower = String(text || "").toLowerCase().trim();
-console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
+    const textLower = String(text || "").toLowerCase().trim();
+    console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
-// 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
+    // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
+    if (
+      state.productoSeleccionado &&
+      !state.perfil.nombre
+    ) {
+      state.etapa = "pidiendo_nombre";
 
-if (
-  state.productoSeleccionado &&
-  !state.perfil.nombre
-) {
-  state.etapa = "pidiendo_nombre";
+      const nombre = String(text || "").trim().replace(/\s+/g, " ");
+      console.log("📌 PRIORIDAD NOMBRE:", nombre);
+      console.log("📌 esNombreValido:", esNombreValido(nombre));
 
-  const nombre = String(text || "").trim().replace(/\s+/g, " ");
-  console.log("📌 PRIORIDAD NOMBRE:", nombre);
-  console.log("📌 esNombreValido:", esNombreValido(nombre));
+      if (!esNombreValido(nombre)) {
+        await replyAndPersist(
+          business,
+          customer,
+          state,
+          from,
+          "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+        );
+        return res.sendStatus(200);
+      }
 
-  if (!esNombreValido(nombre)) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
-    );
-    return res.sendStatus(200);
-  }
+      const nombreValidoIA = await esNombreRealConIA(nombre);
 
-  const nombreValidoIA = await esNombreRealConIA(nombre);
+      if (!nombreValidoIA) {
+        await replyAndPersist(
+          business,
+          customer,
+          state,
+          from,
+          "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
+        );
+        return res.sendStatus(200);
+      }
 
-  if (!nombreValidoIA) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
-    );
-    return res.sendStatus(200);
-  }
+      state.perfil.nombre = nombre;
+      state.etapa = "pidiendo_ciudad";
 
-  state.perfil.nombre = nombre;
-  state.etapa = "pidiendo_ciudad";
-
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
-  );
-  return res.sendStatus(200);
-}
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
+      );
+      return res.sendStatus(200);
+    }
 
 // 1) Catálogo primero
 const wantsCatalog =
@@ -239,6 +238,13 @@ const wantsCatalog =
   );
 
 if (wantsCatalog) {
+  state = {
+    etapa: null,
+    perfil: {},
+    carrito: [],
+    productoSeleccionado: null
+  };
+
   console.log("🔥 Entrando a catálogo");
 
   const productos = await getBusinessProducts(business.id);
@@ -263,10 +269,9 @@ if (wantsCatalog) {
     }
   }
 
+  await saveCustomerState(business.id, customer.id, state);
   return res.sendStatus(200);
 }
-
-// 3) Etapa: pedir nombre
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
@@ -313,22 +318,37 @@ if (state.etapa === "pidiendo_pago") {
   return res.sendStatus(200);
 }
 
-
 // 6) Confirmación final
-
 if (textLower === "confirmo") {
-
   console.log("✅ CONFIRMO DETECTADO");
   console.log("📍 ETAPA ACTUAL:", state.etapa);
   console.log("🧾 PERFIL:", state.perfil);
 
-  // 🔥 VALIDACIÓN IMPORTANTE
-  if (!state.perfil?.nombre || !state.perfil?.direccion) {
-    console.log("❌ FALTAN DATOS, NO GUARDA");
+  if (!state.productoSeleccionado) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "❌ No tengo un producto seleccionado aún."
+    );
+    return res.sendStatus(200);
+  }
 
-    const mensajeError = "Aún faltan datos para completar tu pedido 🙏";
+  const faltantes = [];
+  if (!state.perfil.nombre) faltantes.push("nombre");
+  if (!state.perfil.ciudad) faltantes.push("ciudad");
+  if (!state.perfil.pago) faltantes.push("pago");
+  if (!state.perfil.direccion) faltantes.push("dirección");
 
-    await replyAndPersist(business, customer, state, from, mensajeError);
+  if (faltantes.length > 0) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `❌ Faltan datos: ${faltantes.join(", ")}`
+    );
     return res.sendStatus(200);
   }
 
@@ -340,40 +360,37 @@ if (textLower === "confirmo") {
     state.perfil
   );
 
-if (!orderSaved) {
-  console.log("❌ Producto no disponible");
+  if (!orderSaved) {
+    console.log("❌ Producto no disponible");
 
-  const productos = await getBusinessProducts(business.id);
+    const productos = await getBusinessProducts(business.id);
 
-  if (productos.length) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "Ese modelo no está disponible 😕\n\nPero tengo otras opciones 🔥 te las muestro 👇"
-    );
+    if (productos.length) {
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "Ese modelo no está disponible 😕\n\nPero tengo otras opciones 🔥 te las muestro 👇"
+      );
 
-    for (const producto of productos.slice(0, 3)) {
-      await enviarImagenWhatsApp(from, producto, business);
+      for (const producto of productos.slice(0, 3)) {
+        await enviarImagenWhatsApp(from, producto, business);
+      }
+    } else {
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "Ese producto no está disponible en este momento 😕"
+      );
     }
 
-  } else {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "Ese producto no está disponible en este momento 😕"
-    );
+    return res.sendStatus(200);
   }
 
-  return res.sendStatus(200);
-}
-
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
-
-  state.etapa = "pedido_finalizado";
 
   await replyAndPersist(
     business,
@@ -383,8 +400,11 @@ if (!orderSaved) {
     "¡Listo! 🎉 Tu pedido ha sido confirmado."
   );
 
+  await clearCustomerState(business.id, customer.id);
+
   return res.sendStatus(200);
 }
+
 
 // 7) Si hay una compra en proceso, NO usar IA
 
@@ -404,11 +424,12 @@ if (
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
 
+// 8) Flujo normal con IA solo si NO hay etapa activa
 const respuesta = await procesarMensaje(from, text, business.prompt);
 
-// 🔒 Si la IA está pidiendo el nombre, activar etapa manual
 const respuestaLower = String(respuesta || "").toLowerCase();
 
+// Si la IA pide nombre y aún no lo tenemos, activar etapa manual
 if (
   !state.etapa &&
   !state.perfil.nombre &&
@@ -421,6 +442,61 @@ if (
 ) {
   state.etapa = "pidiendo_nombre";
   console.log("🟡 Etapa activada por respuesta IA: pidiendo_nombre");
+}
+
+// Si la IA pide ciudad y ya tenemos nombre pero no ciudad
+if (
+  !state.etapa &&
+  state.perfil.nombre &&
+  !state.perfil.ciudad &&
+  (
+    respuestaLower.includes("qué ciudad") ||
+    respuestaLower.includes("que ciudad") ||
+    respuestaLower.includes("en qué ciudad") ||
+    respuestaLower.includes("en que ciudad") ||
+    respuestaLower.includes("ciudad estás") ||
+    respuestaLower.includes("ciudad te encuentras")
+  )
+) {
+  state.etapa = "pidiendo_ciudad";
+  console.log("🟡 Etapa activada por respuesta IA: pidiendo_ciudad");
+}
+
+// Si la IA pide pago y ya tenemos ciudad pero no pago
+if (
+  !state.etapa &&
+  state.perfil.nombre &&
+  state.perfil.ciudad &&
+  !state.perfil.pago &&
+  (
+    respuestaLower.includes("efectivo o transferencia") ||
+    respuestaLower.includes("método de pago") ||
+    respuestaLower.includes("metodo de pago") ||
+    respuestaLower.includes("cómo prefieres pagar") ||
+    respuestaLower.includes("como prefieres pagar")
+  )
+) {
+  state.etapa = "pidiendo_pago";
+  console.log("🟡 Etapa activada por respuesta IA: pidiendo_pago");
+}
+
+// Si la IA pide dirección y ya tenemos pago pero no dirección
+if (
+  !state.etapa &&
+  state.perfil.nombre &&
+  state.perfil.ciudad &&
+  state.perfil.pago &&
+  !state.perfil.direccion &&
+  (
+    respuestaLower.includes("dirección") ||
+    respuestaLower.includes("direccion") ||
+    respuestaLower.includes("domicilio") ||
+    respuestaLower.includes("calle y número") ||
+    respuestaLower.includes("calle y numero")
+  )
+) {
+  state.etapa = "pidiendo_direccion";
+  console.log("🟡 Etapa activada por respuesta IA: pidiendo_direccion");
 }
 
 console.log("📤 Enviando respuesta a:", from);
@@ -438,9 +514,9 @@ await enviarWhatsApp(from, respuesta, business);
 await saveCustomerState(business.id, customer.id, state);
 return res.sendStatus(200);
 
-  } catch (e) {
-    console.error("❌ Error en webhook:", e?.response?.data || e);
-    return res.sendStatus(200);
+} catch (error) {
+    console.error("❌ Error en webhook:", error);
+    return res.sendStatus(500);
   }
 });
 
@@ -500,6 +576,16 @@ await supabase
 // ===============================
 // ESTADO DE CLIENTE (PERSISTENTE)
 // ===============================
+
+function getEmptyState() {
+  return {
+    etapa: null,
+    perfil: {},
+    carrito: [],
+    productoSeleccionado: null
+  };
+}
+
 
 async function getCustomerState(businessId, customerId) {
   const { data, error } = await supabase
