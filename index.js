@@ -175,53 +175,41 @@ app.post("/webhook", async (req, res) => {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
-    // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
-    if (
-      state.productoSeleccionado &&
-      !state.perfil.nombre
-    ) {
-      state.etapa = "pidiendo_nombre";
+// 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
+if (
+  state.etapa === "pidiendo_nombre" ||
+  (state.productoSeleccionado && !state.perfil.nombre)
+) {
+  state.etapa = "pidiendo_nombre";
 
-      const nombre = String(text || "").trim().replace(/\s+/g, " ");
-      console.log("📌 PRIORIDAD NOMBRE:", nombre);
-      console.log("📌 esNombreValido:", esNombreValido(nombre));
+  const resultadoNombre = await validarNombrePersona(text);
 
-      if (!esNombreValido(nombre)) {
-        await replyAndPersist(
-          business,
-          customer,
-          state,
-          from,
-          "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
-        );
-        return res.sendStatus(200);
-      }
+  console.log("📌 PRIORIDAD NOMBRE:", text);
+  console.log("📌 resultadoNombre:", resultadoNombre);
 
-      const nombreValidoIA = await esNombreRealConIA(nombre);
+  if (!resultadoNombre.ok) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙏 Por favor escríbeme tu nombre completo real para continuar.\nEjemplo: Juan Pérez"
+    );
+    return res.sendStatus(200);
+  }
 
-      if (!nombreValidoIA) {
-        await replyAndPersist(
-          business,
-          customer,
-          state,
-          from,
-          "🙏 No pude identificar eso como nombre de persona.\nEscríbeme tu nombre completo, por ejemplo: Juan Pérez"
-        );
-        return res.sendStatus(200);
-      }
+  state.perfil.nombre = resultadoNombre.nombre;
+  state.etapa = "pidiendo_ciudad";
 
-      state.perfil.nombre = nombre;
-      state.etapa = "pidiendo_ciudad";
-
-      await replyAndPersist(
-        business,
-        customer,
-        state,
-        from,
-        `Gracias ${nombre} 🙌 ¿En qué ciudad estás?`
-      );
-      return res.sendStatus(200);
-    }
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `Gracias ${resultadoNombre.nombre} 🙌 ¿En qué ciudad estás?`
+  );
+  return res.sendStatus(200);
+}
 
 // 1) Catálogo primero
 const wantsCatalog =
@@ -861,21 +849,49 @@ function getClientState(clienteId) {
 }
 
 function normalizarTexto(texto = "") {
-  return texto
+  return String(texto || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .trim()	
+    .trim()
     .replace(/\s+/g, " ");
 }
 
 const PALABRAS_PROHIBIDAS_NOMBRE = new Set([
+  // catálogo / compra
   "catalogo", "catalogos", "catalog", "catálogo", "catalgo", "catalg",
   "producto", "productos", "precio", "precios", "costo", "costos",
-  "hola", "buenas", "bueno", "ok", "va", "sale", "si", "sí",
-  "quiero", "pedido", "envio", "envío", "direccion", "dirección",
-  "calle", "colonia", "col", "cp", "ciudad", "estado",
-  "tarjeta", "transferencia", "efectivo"
+  "pedido", "comprar", "compra", "quiero", "modelo", "funda", "iphone",
+  "samsung", "xiaomi", "motorola", "huawei", "celular", "telefono",
+
+  // saludos / relleno
+  "hola", "buenas", "buenos", "dias", "día", "tardes", "noches",
+  "ok", "sale", "va", "gracias", "si", "sí", "confirmo",
+
+  // dirección / pago
+  "direccion", "dirección", "calle", "colonia", "col", "cp", "c.p",
+  "tarjeta", "transferencia", "efectivo", "pago",
+
+  // ciudades / lugares
+  "veracruz", "monterrey", "mexico", "méxico", "cdmx",
+
+  // animales / palabras comunes
+  "perro", "perra", "gato", "gata", "conejo", "caballo", "vaca",
+  "pollo", "oso", "tigre", "leon", "león", "raton", "ratón"
+]);
+
+const NOMBRES_COMUNES = new Set([
+  "juan", "jose", "josé", "maria", "maría", "luis", "miguel", "angel",
+  "ángel", "carlos", "andres", "andrés", "pedro", "jorge", "manuel",
+  "enrique", "fernando", "roberto", "rafael", "eduardo", "alejandro",
+  "david", "daniel", "adrian", "adrián", "omar", "oscar", "óscar",
+  "raul", "raúl", "antonio", "francisco", "jesus", "jesús", "ricardo",
+  "martin", "martín", "sergio", "alberto", "alfonso", "victor", "víctor",
+  "gabriel", "emmanuel", "ivan", "iván", "julio", "marvin", "edgar",
+  "ana", "laura", "luisa", "fernanda", "sofia", "sofía", "patricia",
+  "guadalupe", "adriana", "claudia", "diana", "paola", "gabriela",
+  "karla", "carmen", "rosa", "marisol", "martha", "leticia", "veronica",
+  "verónica", "alejandra", "monica", "mónica", "erika", "erica", "norma"
 ]);
 
 function esNombreValido(texto) {
@@ -888,24 +904,32 @@ function esNombreValido(texto) {
   if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(limpio)) return false;
 
   const palabras = limpio.split(" ").filter(Boolean);
-  const palabrasNormalizadas = normalizado.split(" ").filter(Boolean);
+  const palabrasNorm = normalizado.split(" ").filter(Boolean);
 
+  // exigir nombre + apellido
   if (palabras.length < 2 || palabras.length > 4) return false;
+
+  // cada palabra razonable
   if (palabras.some(p => p.length < 2 || p.length > 20)) return false;
-  if (palabrasNormalizadas.some(p => PALABRAS_PROHIBIDAS_NOMBRE.has(p))) return false;
 
+  // bloquear palabras prohibidas exactas
+  if (palabrasNorm.some(p => PALABRAS_PROHIBIDAS_NOMBRE.has(p))) return false;
+
+  // bloquear frases sospechosas
   const sospechosas = [
-    "catalog",
-    "catalg",
-    "precio",
-    "producto",
-    "transfer",
-    "envio",
-    "direccion",
-    "calle"
+    "catalog", "catalg", "precio", "producto", "transfer",
+    "envio", "direccion", "calle", "funda", "iphone", "samsung",
+    "perro", "gato"
   ];
-
   if (sospechosas.some(s => normalizado.includes(s))) return false;
+
+  // evitar repeticiones raras
+  const unicas = new Set(palabrasNorm);
+  if (unicas.size < palabrasNorm.length) return false;
+
+  // al menos una palabra debe parecer nombre real común
+  const tieneNombreComun = palabrasNorm.some(p => NOMBRES_COMUNES.has(p));
+  if (!tieneNombreComun) return false;
 
   return true;
 }
@@ -926,32 +950,30 @@ async function esNombreRealConIA(texto) {
           content: `
 Responde SOLO con SI o NO.
 
-Tu tarea es decidir si el texto parece un nombre real de persona en español.
+Debes decidir si el texto parece un nombre real de persona hispana.
 
 ACEPTA:
 - Juan Pérez
 - María López
-- José Manuel Ramírez
+- Enrique Ramírez
 - Ana Sofía Torres
 
 RECHAZA:
+- perro
+- Perro Pérez
+- gato lopez
 - catalogo
-- catalgo
-- hola
-- precio
-- iphone 13
-- samsung
-- transferencia
-- calle rio bamba 57
-- Veracruz
-- Quiero el catálogo
-- Juan iphone
-- Nombre completo
+- hola amigo
+- funda samsung
+- transferencia bancaria
+- calle rio bamba
+- Veracruz México
+- nombre completo
 
 Reglas:
-- Debe parecer nombre y apellido de persona.
-- No aceptes productos, ciudades, saludos, métodos de pago ni direcciones.
-- No aceptes frases comerciales.
+- Debe parecer nombre humano real.
+- Debe tener nombre y apellido.
+- No aceptes animales, objetos, productos, saludos, direcciones, ciudades ni frases.
 - Si tienes duda, responde NO.
           `.trim()
         },
@@ -968,6 +990,31 @@ Reglas:
     console.error("❌ Error validando nombre con IA:", error);
     return false;
   }
+}
+
+async function validarNombrePersona(texto) {
+  const nombre = String(texto || "").trim().replace(/\s+/g, " ");
+
+  if (!esNombreValido(nombre)) {
+    return {
+      ok: false,
+      motivo: "hard_filter"
+    };
+  }
+
+  const validoIA = await esNombreRealConIA(nombre);
+
+  if (!validoIA) {
+    return {
+      ok: false,
+      motivo: "ia"
+    };
+  }
+
+  return {
+    ok: true,
+    nombre
+  };
 }
 
 // 👇 tu función existente
