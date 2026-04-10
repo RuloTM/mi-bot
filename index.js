@@ -175,6 +175,17 @@ app.post("/webhook", async (req, res) => {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
+// 🔥 Detectar producto automáticamente desde texto
+const productosDetectables = await getBusinessProducts(business.id);
+const productoDetectado = findProductFromText(productosDetectables, text);
+
+if (productoDetectado) {
+  console.log("🧠 Producto detectado:", productoDetectado.name);
+
+  state.productoSeleccionado = productoDetectado;
+  state.perfil.producto = productoDetectado.name;
+}
+
 // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
 if (
   state.etapa === "pidiendo_nombre" ||
