@@ -152,23 +152,24 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-// 🔒 Validar si el negocio está activo (SaaS control)
-if (!business.active) {
-  console.log("⛔ Negocio inactivo:", business.name);
-  return res.sendStatus(200);
-}
-// 🔒 CONTROL DE SUSCRIPCIÓN (AQUÍ VA)
+// 🔒 CONTROL DE SUSCRIPCIÓN
 if (!business.active) {
   console.log("⛔ Negocio inactivo:", business.name);
 
-  await enviarWhatsApp(
-    from,
-    "Tu servicio está temporalmente suspendido. Contacta soporte para reactivarlo 🙏",
-    business
-  );
+  try {
+    await enviarWhatsApp(
+      from,
+      "Tu servicio está temporalmente suspendido. Contacta soporte para reactivarlo 🙏",
+      business
+    );
+    console.log("📤 Mensaje de suspensión enviado");
+  } catch (err) {
+    console.error("❌ Error enviando mensaje de suspensión:", err?.response?.data || err);
+  }
 
   return res.sendStatus(200);
 }
+
     const customer = await getOrCreateCustomer(business.id, from);
     if (!customer) return res.sendStatus(200);
 
