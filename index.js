@@ -175,6 +175,22 @@ app.post("/webhook", async (req, res) => {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
+// 🔄 Si el pedido anterior ya terminó y el cliente quiere volver a empezar
+if (
+  state.etapa === "pedido_finalizado" &&
+  (
+    textLower.includes("catalogo") ||
+    textLower.includes("catálogo") ||
+    textLower.includes("productos") ||
+    textLower.includes("quiero comprar") ||
+    textLower.includes("comprar")
+  )
+) {
+  state = getEmptyState();
+  console.log("🧹 Estado reiniciado para nueva compra");
+}
+
+
 // 🔥 Detectar producto automáticamente desde texto
 const productosDetectables = await getBusinessProducts(business.id);
 const productoDetectado = findProductFromText(productosDetectables, text);
@@ -400,6 +416,8 @@ if (textLower === "confirmo") {
   );
 
   await clearCustomerState(business.id, customer.id);
+  state = getEmptyState(); // 🔥 reset inmediato en memoria
+  await saveCustomerState(business.id, customer.id, state);
 
   return res.sendStatus(200);
 }
@@ -646,14 +664,17 @@ async function replyAndPersist(business, customer, state, to, text) {
 }
 
 async function clearCustomerState(businessId, customerId) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("customer_states")
     .delete()
     .eq("business_id", businessId)
-    .eq("customer_id", customerId);
+    .eq("customer_id", customerId)
+    .select();
 
   if (error) {
     console.error("❌ Error limpiando customer_state:", error);
+  } else {
+    console.log("🧹 customer_state eliminado:", data);
   }
 }
 
