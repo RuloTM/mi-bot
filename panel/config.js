@@ -1,8 +1,9 @@
-const token = localStorage.getItem("token");
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-if (!token) {
-  window.location.href = "/";
-}
+const SUPABASE_URL = "https://gidnjvrrjdqreovvleti.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_j3rdbMWnZTG2PzEpfXS_SQ_O1uun8gI";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const form = document.getElementById("config-form");
 const msgBox = document.getElementById("msg");
@@ -24,7 +25,24 @@ function showMessage(text, type = "ok") {
   msgBox.textContent = text;
 }
 
+async function getAccessToken() {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) {
+    throw error;
+  }
+
+  return data.session?.access_token || null;
+}
+
 async function api(path, options = {}) {
+  const token = await getAccessToken();
+
+  if (!token) {
+    window.location.href = "/";
+    throw new Error("No hay sesión activa");
+  }
+
   const res = await fetch(path, {
     ...options,
     headers: {
@@ -35,9 +53,8 @@ async function api(path, options = {}) {
   });
 
   if (res.status === 401) {
-    localStorage.removeItem("token");
     window.location.href = "/";
-    return;
+    throw new Error("Sesión expirada");
   }
 
   const data = await res.json().catch(() => ({}));
@@ -74,13 +91,13 @@ form.addEventListener("submit", async (e) => {
 
   try {
     const payload = {
-      name: fields.name.value,
-      city: fields.city.value,
+      name: fields.name.value.trim(),
+      city: fields.city.value.trim(),
       shipping_cost: Number(fields.shipping_cost.value || 0),
-      support_hours: fields.support_hours.value,
-      payment_methods: fields.payment_methods.value,
-      welcome_message: fields.welcome_message.value,
-      prompt: fields.prompt.value,
+      support_hours: fields.support_hours.value.trim(),
+      payment_methods: fields.payment_methods.value.trim(),
+      welcome_message: fields.welcome_message.value.trim(),
+      prompt: fields.prompt.value.trim(),
       active: fields.active.value === "true"
     };
 
