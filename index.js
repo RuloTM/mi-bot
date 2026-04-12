@@ -1272,6 +1272,80 @@ app.get("/orders", requireAuth, async (req, res) => {
   }
 });
 
+// 🔧 Obtener configuración del negocio
+app.get("/business/config", requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("businesses")
+      .select(`
+        id,
+        name,
+        prompt,
+        city,
+        shipping_cost,
+        support_hours,
+        payment_methods,
+        welcome_message,
+        active
+      `)
+      .eq("id", req.businessId)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: "Negocio no encontrado" });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Error obteniendo configuración del negocio:", err);
+    res.status(500).json({ error: "Error obteniendo configuración" });
+  }
+});
+
+// 🔧 Guardar configuración del negocio
+app.put("/business/config", requireAuth, async (req, res) => {
+  try {
+    const {
+      name,
+      prompt,
+      city,
+      shipping_cost,
+      support_hours,
+      payment_methods,
+      welcome_message,
+      active
+    } = req.body;
+
+    const payload = {};
+
+    if (name !== undefined) payload.name = String(name).trim();
+    if (prompt !== undefined) payload.prompt = String(prompt).trim();
+    if (city !== undefined) payload.city = String(city).trim();
+    if (shipping_cost !== undefined) payload.shipping_cost = Number(shipping_cost);
+    if (support_hours !== undefined) payload.support_hours = String(support_hours).trim();
+    if (payment_methods !== undefined) payload.payment_methods = String(payment_methods).trim();
+    if (welcome_message !== undefined) payload.welcome_message = String(welcome_message).trim();
+    if (active !== undefined) payload.active = !!active;
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .update(payload)
+      .eq("id", req.businessId)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ ok: true, business: data });
+  } catch (err) {
+    console.error("❌ Error actualizando configuración del negocio:", err);
+    res.status(500).json({ error: "Error actualizando configuración" });
+  }
+});
+
+
 app.get("/customers/:customerId/messages", requireAuth, async (req, res) => {
   try {
     const customerId = req.params.customerId;
