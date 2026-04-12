@@ -1,11 +1,12 @@
-console.log("🚀 VERSION RENDER CORRECTA d5776d9");
 
+console.log("🚀 VERSION CONFIG FIX 2026-04-11 FINAL");
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 const axios = require("axios");
+const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
 const openai = new OpenAI({
@@ -27,6 +28,21 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/config", (req, res) => {
+  res.sendFile(path.join(__dirname, "panel", "config.html"));
+});
+
+app.get("/config.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "panel", "config.html"));
+});
+
+app.get("/panel/config.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "panel", "config.html"));
+});
+
+app.get("/panel/config.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "panel", "config.js"));
+});
 app.get("/privacy", (req, res) => {
   res.send(`
     <!DOCTYPE html>
