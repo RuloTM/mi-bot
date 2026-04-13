@@ -1400,6 +1400,8 @@ app.get("/business/config", requireAuth, async (req, res) => {
         payment_methods,
         welcome_message,
         active
+	payment_enabled,
+        payment_mode
       `)
       .eq("id", req.businessId)
       .single();
