@@ -713,7 +713,7 @@ async function clearCustomerState(businessId, customerId) {
 }
 
 async function calcularTotal(businessId, perfil) {
-  const shippingCost = 120;
+  const shippingCost = Number(business?.shipping_cost || 120);
 
   const precioProducto = await getProductPrice(
     businessId,
