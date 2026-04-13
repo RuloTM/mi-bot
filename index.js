@@ -1130,7 +1130,17 @@ app.post("/mensaje", async (req, res) => {
   }
 
   try {
-    const respuesta = await procesarMensaje(clienteId, mensaje, PERFIL_NEGOCIO);
+    const businessDemo = {
+      name: "Mi Tienda",
+      city: "Veracruz",
+      shipping_cost: 120,
+      support_hours: "Lunes a Viernes 9am–6pm",
+      payment_methods: "Tarjeta y transferencia",
+      welcome_message: "Hola 👋 Gracias por escribirnos.",
+      prompt: PERFIL_NEGOCIO
+    };
+
+    const respuesta = await procesarMensaje(clienteId, mensaje, businessDemo);
     res.json({ clienteId, respuesta });
   } catch (error) {
     console.log("=== ERROR OPENAI ===");
@@ -1203,9 +1213,8 @@ async function enviarImagenWhatsApp(to, producto, business) {
     }
   );
 }
-	
-async function procesarMensaje(clienteId, mensaje, promptNegocio = PERFIL_NEGOCIO) {
 
+async function procesarMensaje(clienteId, mensaje, business) {
   const state = getClientState(clienteId);
 
   state.perfil = state.perfil || {};
@@ -1214,11 +1223,48 @@ async function procesarMensaje(clienteId, mensaje, promptNegocio = PERFIL_NEGOCI
   state.history.push({ role: "user", content: mensaje });
   state.history = state.history.slice(-10);
 
+  const promptBase = `
+Eres un asistente de ventas por WhatsApp para un negocio en México.
+
+Tu trabajo es:
+- responder como vendedor humano
+- guiar al cliente paso a paso
+- detectar intención de compra
+- cerrar ventas
+- no repetir preguntas ya respondidas
+- no inventar productos ni precios
+- siempre empujar al siguiente paso de compra
+
+Reglas generales:
+- Responde claro, corto y amable.
+- Habla como vendedor real por WhatsApp.
+- Si el cliente muestra intención, guía a cierre.
+- Si ya tienes datos del cliente, no los vuelvas a pedir.
+- Si falta solo un dato, pide solo ese dato.
+- No des respuestas largas.
+`.trim();
+
+  const promptNegocio = `
+Configuración del negocio:
+- Nombre del negocio: ${business?.name || "Mi Tienda"}
+- Ciudad base: ${business?.city || "No especificada"}
+- Costo de envío: $${Number(business?.shipping_cost || 0).toFixed(2)} MXN
+- Métodos de pago: ${business?.payment_methods || "No especificados"}
+- Horario de soporte: ${business?.support_hours || "No especificado"}
+- Mensaje de bienvenida sugerido: ${business?.welcome_message || "No especificado"}
+
+Instrucciones específicas del negocio:
+${business?.prompt || "Vende los productos del catálogo de forma clara y busca cerrar ventas."}
+`.trim();
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     max_tokens: 180,
     messages: [
-      { role: "system", content: promptNegocio },
+      {
+        role: "system",
+        content: `${promptBase}\n\n${promptNegocio}`
+      },
       {
         role: "system",
         content: `Datos conocidos del cliente (no vuelvas a pedirlos si ya existen):
@@ -1237,7 +1283,7 @@ cantidad: ${state.perfil.cantidad || "desconocida"}`
   state.history = state.history.slice(-10);
 
   return respuesta;
-}
+}	
 
 app.get("/debug/:clienteId", (req, res) => {
   const clienteId = req.params.clienteId;
