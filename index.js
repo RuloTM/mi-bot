@@ -476,7 +476,7 @@ if (
 // 8) Flujo normal con IA solo si NO hay etapa activa
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
-const respuesta = await procesarMensaje(from, text, business.prompt);
+const respuesta = await procesarMensaje(from, text, business);
 
 const respuestaLower = String(respuesta || "").toLowerCase();
 
