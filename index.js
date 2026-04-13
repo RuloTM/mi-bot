@@ -209,6 +209,36 @@ if (!business.active) {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
+// 💳 PRIORIDAD: DUDAS DE PAGO (ANTES DE IA)
+if (
+  !state.etapa &&
+  !state.productoSeleccionado &&
+  (
+    textLower.includes("transferencia") ||
+    textLower.includes("tarjeta") ||
+    textLower.includes("pagar") ||
+    textLower.includes("pago") ||
+    textLower.includes("aceptas transferencia") ||
+    textLower.includes("se puede pagar con tarjeta") ||
+    textLower.includes("como pago") ||
+    textLower.includes("cómo pago")
+  )
+) {
+  const metodosPago = business.payment_methods || "transferencia y tarjeta";
+
+  const mensajePago = `Sí 👌 aceptamos ${metodosPago}. ¿Qué producto te interesa para avanzarte tu pedido de una vez?`;
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    mensajePago
+  );
+
+  return res.sendStatus(200);
+}
+
 // 🔄 Si el pedido anterior ya terminó y el cliente quiere volver a empezar
 if (
   state.etapa === "pedido_finalizado" &&
@@ -1262,6 +1292,11 @@ Pagos:
 - Si el cliente pregunta cómo pagar, responde con los métodos disponibles
 - Si acepta transferencia, dilo con seguridad y naturalidad
 - Usa el tema del pago para acercarte al cierre de venta
+- Si el cliente pregunta por tarjeta o transferencia, responde directo y luego intenta cerrar con una pregunta concreta como:
+  "¿Para qué modelo buscas la funda?" o "¿Cuál producto te interesa para avanzarte el pedido?"
+- No te quedes solo resolviendo la duda; después de responder, empuja la venta.
+
+
 
 Horario:
 - Horario de soporte: ${business?.support_hours || "No especificado"}
