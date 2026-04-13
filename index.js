@@ -1224,7 +1224,8 @@ async function procesarMensaje(clienteId, mensaje, business) {
   state.history = state.history.slice(-10);
 
   const promptBase = `
-Eres un asistente de ventas por WhatsApp para un negocio en México.
+- Si el cliente pregunta por envío, responde con el costo y rapidez.
+- Usa los datos del negocio para convencer.
 
 Tu trabajo es:
 - responder como vendedor humano
