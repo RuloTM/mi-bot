@@ -1388,6 +1388,9 @@ app.get("/orders", requireAuth, async (req, res) => {
 // 🔧 Obtener configuración del negocio
 app.get("/business/config", requireAuth, async (req, res) => {
   try {
+
+    console.log("🧪 BUSINESS ID:", req.businessId);
+
     const { data, error } = await supabase
       .from("businesses")
       .select(`
