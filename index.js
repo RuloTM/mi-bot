@@ -1388,7 +1388,6 @@ app.get("/orders", requireAuth, async (req, res) => {
 // 🔧 Obtener configuración del negocio
 app.get("/business/config", requireAuth, async (req, res) => {
   try {
-
     console.log("🧪 BUSINESS ID:", req.businessId);
 
     const { data, error } = await supabase
@@ -1402,14 +1401,19 @@ app.get("/business/config", requireAuth, async (req, res) => {
         support_hours,
         payment_methods,
         welcome_message,
-        active
-	payment_enabled,
+        active,
+        payment_enabled,
         payment_mode
       `)
       .eq("id", req.businessId)
       .single();
 
-    if (error || !data) {
+    if (error) {
+      console.error("❌ Error en /business/config:", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!data) {
       return res.status(404).json({ error: "Negocio no encontrado" });
     }
 
