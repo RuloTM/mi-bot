@@ -388,9 +388,23 @@ if (state.etapa === "pidiendo_ciudad") {
   return res.sendStatus(200);
 
 }
+
 if (state.etapa === "pidiendo_pago") {
   state.perfil.pago = text.trim();
   state.etapa = "pidiendo_direccion";
+
+  if (business.payment_enabled && business.payment_mode === "link") {
+    const mensajePago = `Perfecto 👍 puedes pagar aquí:
+
+👉 https://TU-LINK-DE-PAGO.com
+
+En cuanto se refleje el pago, procesamos tu pedido 🚀
+
+Después compárteme tu dirección completa de entrega.`;
+
+    await replyAndPersist(business, customer, state, from, mensajePago);
+    return res.sendStatus(200);
+  }
 
   const askAddressMessage = "Excelente 🙌 Ahora necesito tu dirección completa de entrega.";
   await replyAndPersist(business, customer, state, from, askAddressMessage);
@@ -1252,6 +1266,38 @@ async function procesarMensaje(clienteId, mensaje, business) {
 
   state.history.push({ role: "user", content: mensaje });
   state.history = state.history.slice(-10);
+
+  const textLower = mensaje.toLowerCase();
+
+  // 💰 CONTROL DE PAGOS INTELIGENTE
+  if (
+    !state.etapa &&
+    !state.productoSeleccionado &&
+    (
+      textLower.includes("pago") ||
+      textLower.includes("tarjeta") ||
+      textLower.includes("transferencia") ||
+      textLower.includes("como pago")
+    )
+  ) {
+    // 👉 SI TIENE LINK ACTIVADO
+    if (business.payment_enabled && business.payment_mode === "link") {
+      return `Perfecto 👍 puedes pagar en línea aquí:
+
+👉 https://TU-LINK-DE-PAGO.com
+
+En cuanto se refleje el pago, procesamos tu pedido 🚀`;
+    }
+
+    // 👉 SI ES MANUAL
+    const metodos = business.payment_methods || "transferencia o tarjeta";
+
+    return `Sí 👌 aceptamos ${metodos}.
+¿Qué producto te interesa para avanzar con tu pedido?`;
+  }
+
+  // 👇 TODO TU PROMPT SIGUE NORMAL
+
 
 const promptBase = `
 Eres un asistente de ventas por WhatsApp.
