@@ -358,7 +358,7 @@ if (state.etapa === "pidiendo_direccion") {
   state.etapa = "confirmacion";
 
 
-  const { shippingCost, total } = await calcularTotal(businessId, perfil, { shipping_cost: 120 });
+  const { shippingCost, total } = await calcularTotal(business.id, state.perfil, business);
  
   const subtotal = total - shippingCost;
 
