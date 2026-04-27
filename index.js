@@ -357,7 +357,9 @@ if (state.etapa === "pidiendo_direccion") {
   state.perfil.direccion = text.trim();
   state.etapa = "confirmacion";
 
-  const { shippingCost, total } = await calcularTotal(business.id, state.perfil);
+
+  const { shippingCost, total } = await calcularTotal(businessId, perfil, { shipping_cost: 120 });
+ 
   const subtotal = total - shippingCost;
 
   const resumenMessage = `Perfecto 🙌 Te resumo tu pedido:
@@ -756,7 +758,7 @@ async function clearCustomerState(businessId, customerId) {
   }
 }
 
-async function calcularTotal(businessId, perfil) {
+async function calcularTotal(businessId, perfil, business) {
   const shippingCost = Number(business?.shipping_cost || 120);
 
   const precioProducto = await getProductPrice(
@@ -772,8 +774,8 @@ async function calcularTotal(businessId, perfil) {
     };
   }
 
-  const cantidad = Number(perfil.cantidad || 1);
-  const subtotal = precioProducto * cantidad;
+  const cantidadPedido = Number(perfil.cantidad || 1);
+  const subtotal = precioProducto * cantidadPedido;
   const total = subtotal + shippingCost;
 
   return {
@@ -782,6 +784,8 @@ async function calcularTotal(businessId, perfil) {
     total
   };
 }
+
+
 
 async function getProductPrice(businessId, productName) {
   const { data, error } = await supabase
@@ -865,7 +869,9 @@ function findProductFromText(products, text) {
 async function saveOrder(businessId, customerId, perfil) {
   console.log("📦 Intentando guardar pedido con perfil:", perfil);
 
-  const { shippingCost, total } = await calcularTotal(businessId, perfil);
+
+const { shippingCost, total } = await calcularTotal(business.id, state.perfil, business);
+  
 
   const { data, error } = await supabase
     .from("orders")
