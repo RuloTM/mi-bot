@@ -537,17 +537,16 @@ console.log("🧠 PRE-IA STATE:", JSON.stringify(state));
 
 if (
   state.etapa &&
-  state.etapa !== "confirmacion" &&
   state.etapa !== "pedido_finalizado"
 ) {
   const mensajeProceso =
-    "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
+    state.etapa === "confirmacion"
+      ? "Tu pedido ya está listo para confirmar 🙌 Responde CONFIRMO para finalizarlo o escribe RESET para iniciar de nuevo."
+      : "Sigamos con tu pedido 🙌 Responde el dato que te estoy solicitando para continuar.";
 
   await replyAndPersist(business, customer, state, from, mensajeProceso);
   return res.sendStatus(200);
 }
-
-// 8) Flujo normal con IA solo si NO hay etapa activa
 
 // 8) Flujo normal con IA solo si NO hay etapa activa
 const respuesta = await procesarMensaje(from, text, business);
