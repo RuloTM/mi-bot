@@ -212,21 +212,49 @@ if (!business.active) {
 // 💳 PRIORIDAD: DUDAS DE PAGO (ANTES DE IA)
 if (
   !state.etapa &&
-  !state.productoSeleccionado &&
   (
     textLower.includes("transferencia") ||
     textLower.includes("tarjeta") ||
     textLower.includes("pagar") ||
     textLower.includes("pago") ||
-    textLower.includes("aceptas transferencia") ||
-    textLower.includes("se puede pagar con tarjeta") ||
     textLower.includes("como pago") ||
     textLower.includes("cómo pago")
   )
 ) {
+  // 🔒 NO saltar datos obligatorios
+  if (!state.perfil.nombre) {
+    state.etapa = "pidiendo_nombre";
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Perfecto 👌 antes de continuar, ¿me das tu nombre completo?"
+    );
+
+    return res.sendStatus(200);
+  }
+
+  if (!state.perfil.ciudad) {
+    state.etapa = "pidiendo_ciudad";
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Perfecto 👌 ¿en qué ciudad estás?"
+    );
+
+    return res.sendStatus(200);
+  }
+
   const metodosPago = business.payment_methods || "transferencia y tarjeta";
 
-  const mensajePago = `Sí 👌 aceptamos ${metodosPago}. ¿Qué producto te interesa para avanzarte tu pedido de una vez?`;
+  const mensajePago = `Sí 👌 aceptamos ${metodosPago}. ¿Me compartes tu dirección completa para avanzarte el pedido?`;
+
+  state.etapa = "pidiendo_direccion";
 
   await replyAndPersist(
     business,
@@ -766,7 +794,7 @@ async function calcularTotal(businessId, perfil, business) {
     perfil.producto
   );
 
-  if (!precioProducto) {
+  if (!precioProducto) {	
     return {
       subtotal: 0,
       shippingCost,
