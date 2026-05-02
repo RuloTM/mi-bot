@@ -441,25 +441,24 @@ Después compárteme tu dirección completa de entrega.`;
   return res.sendStatus(200);
 }
 
+
 // 🔄 RESET PRIORIDAD MÁXIMA
 if (textLower === "reset" || textLower === "reiniciar") {
-  userStates[from] = {
-    etapa: null,
-    perfil: {},
-    productoSeleccionado: null,
-    history: []
-  };
+  await clearCustomerState(business.id, customer.id);
+
+  const newState = getEmptyState();
 
   await replyAndPersist(
     business,
     customer,
-    userStates[from],
+    newState,
     from,
     "Listo 🔄 reinicié la conversación. ¿Qué producto buscas?"
   );
 
   return res.sendStatus(200);
 }
+
 
 // 6) Confirmación final
 if (textLower === "confirmo") {
