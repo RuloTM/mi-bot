@@ -20,6 +20,7 @@ const fields = {
   active: document.getElementById("active"),
   payment_enabled: document.getElementById("payment_enabled"),
   payment_mode: document.getElementById("payment_mode")
+  payment_link_url: document.getElementById("payment_link_url")
 };
 
 function showMessage(text, type = "ok") {
@@ -82,6 +83,7 @@ async function loadConfig() {
     fields.active.value = String(data.active ?? true);
     fields.payment_enabled.value = String(data.payment_enabled ?? false);
     fields.payment_mode.value = data.payment_mode || "manual";
+    fields.payment_link_url.value = data.payment_link_url || "";
 
     showMessage("Configuración cargada correctamente.", "ok");
   } catch (error) {
@@ -105,6 +107,8 @@ form.addEventListener("submit", async (e) => {
       active: fields.active.value === "true",
       payment_enabled: fields.payment_enabled.value === "true",
       payment_mode: fields.payment_mode.value
+      payment_link_url: fields.payment_link_url.value.trim()
+
     };
 
     await api("/business/config", {
