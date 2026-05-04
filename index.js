@@ -1513,7 +1513,7 @@ app.get("/business/config", requireAuth, async (req, res) => {
         welcome_message,
         active,
         payment_enabled,
-        payment_mode
+        payment_mode,
         payment_link_url
       `)
       .eq("id", req.businessId)
