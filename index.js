@@ -424,9 +424,22 @@ if (state.etapa === "pidiendo_pago") {
   state.etapa = "pidiendo_direccion";
 
   if (business.payment_enabled && business.payment_mode === "link") {
+    const linkPago = String(business.payment_link_url || "").trim();
+
+    if (!linkPago) {
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "Perfecto 👍 tengo registrado tu método de pago. Ahora necesito tu dirección completa de entrega."
+      );
+      return res.sendStatus(200);
+    }
+
     const mensajePago = `Perfecto 👍 puedes pagar aquí:
 
-👉 https://TU-LINK-DE-PAGO.com
+👉 ${linkPago}
 
 En cuanto se refleje el pago, procesamos tu pedido 🚀
 
@@ -440,7 +453,6 @@ Después compárteme tu dirección completa de entrega.`;
   await replyAndPersist(business, customer, state, from, askAddressMessage);
   return res.sendStatus(200);
 }
-
 
 // 🔄 RESET PRIORIDAD MÁXIMA
 if (textLower === "reset" || textLower === "reiniciar") {
@@ -1502,6 +1514,7 @@ app.get("/business/config", requireAuth, async (req, res) => {
         active,
         payment_enabled,
         payment_mode
+        payment_link_url
       `)
       .eq("id", req.businessId)
       .single();
@@ -1533,7 +1546,8 @@ app.put("/business/config", requireAuth, async (req, res) => {
       support_hours,
       payment_methods,
       welcome_message,
-      active
+      active,
+      payment_link_url
     } = req.body;
 
     const payload = {};
@@ -1546,6 +1560,10 @@ app.put("/business/config", requireAuth, async (req, res) => {
     if (payment_methods !== undefined) payload.payment_methods = String(payment_methods).trim();
     if (welcome_message !== undefined) payload.welcome_message = String(welcome_message).trim();
     if (active !== undefined) payload.active = !!active;
+    if (payment_link_url !== undefined) {
+  payload.payment_link_url = String(payment_link_url).trim();
+}
+
 
     const { data, error } = await supabase
       .from("businesses")
