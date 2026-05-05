@@ -511,7 +511,8 @@ if (textLower === "confirmo") {
   const orderSaved = await saveOrder(
     business.id,
     customer.id,
-    state.perfil
+    state.perfil,
+    business
   );
 
   if (!orderSaved) {
@@ -924,12 +925,14 @@ function findProductFromText(products, text) {
   return null;
 }
 
-async function saveOrder(businessId, customerId) {
+async function saveOrder(businessId, customerId, perfil, business) {
   console.log("📦 Intentando guardar pedido con perfil:", perfil);
 
-
-const { shippingCost, total } = await calcularTotal(business.id, state.perfil, business);
-  
+  const { shippingCost, total } = await calcularTotal(
+    businessId,
+    perfil,
+    business
+  );
 
   const { data, error } = await supabase
     .from("orders")
@@ -958,6 +961,8 @@ const { shippingCost, total } = await calcularTotal(business.id, state.perfil, b
   console.log("✅ Pedido guardado:", data);
   return data;
 }
+
+
 
 const PERFIL_NEGOCIO = `
 Eres el asistente de atención al cliente de una tienda en línea en México llamada "Mi Tienda".
