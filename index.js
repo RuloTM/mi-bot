@@ -924,7 +924,7 @@ function findProductFromText(products, text) {
   return null;
 }
 
-async function saveOrder(businessId, customerId, perfil) {
+async function saveOrder(businessId, customerId) {
   console.log("📦 Intentando guardar pedido con perfil:", perfil);
 
 
