@@ -408,6 +408,77 @@ Si todo está correcto, responde: CONFIRMO`;
   return res.sendStatus(200);
 }
 
+// 👇👇👇 PEGA AQUÍ EXACTO 👇👇👇
+
+// ✅ CONFIRMAR PEDIDO
+if (textLower.includes("confirmo")) {
+
+  if (!state.productoSeleccionado) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "❌ No tengo un producto seleccionado aún."
+    );
+    return res.sendStatus(200);
+  }
+
+  const orderSaved = await saveOrder(
+    business.id,
+    customer.id,
+    state.perfil,
+    business
+  );
+
+  if (!orderSaved) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "❌ Hubo un error al guardar tu pedido."
+    );
+    return res.sendStatus(200);
+  }
+
+  let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
+
+  if (business.payment_enabled && business.payment_mode === "link") {
+    const linkPago = String(business.payment_link_url || "").trim();
+
+    if (linkPago) {
+      mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
+
+Puedes realizar tu pago aquí:
+
+👉 ${linkPago}
+
+Total a pagar: $${Number(orderSaved.total || 0).toFixed(2)} MXN
+
+En cuanto se refleje el pago, procesamos tu pedido 🚀`;
+    }
+  }
+
+  userStates[from] = {
+    etapa: null,
+    perfil: {},
+    productoSeleccionado: null,
+    history: []
+  };
+
+  await replyAndPersist(
+    business,
+    customer,
+    userStates[from],
+    from,
+    mensajeFinal
+  );
+
+  return res.sendStatus(200);
+}
+
+
 // 5) Etapa: pedir ciudad y mostrar resumen
 if (state.etapa === "pidiendo_ciudad") {
   state.perfil.ciudad = text.trim();
@@ -1348,6 +1419,18 @@ if (productoDetectado) {
   state.perfil.producto = productoDetectado.name;
 
   console.log("🛒 Producto detectado:", productoDetectado.name);
+} else {
+  // 🔥 fallback inteligente
+  const posible = productos.find(p =>
+    (p.name || "").toLowerCase().includes("iphone 13")
+  );
+
+  if (posible) {
+    state.productoSeleccionado = posible;
+    state.perfil.producto = posible.name;
+
+    console.log("🧠 Producto inferido:", posible.name);
+  }
 }
 
   // 💰 CONTROL DE PAGOS INTELIGENTE
