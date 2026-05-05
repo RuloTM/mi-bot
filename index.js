@@ -1336,7 +1336,19 @@ async function procesarMensaje(clienteId, mensaje, business) {
   state.history.push({ role: "user", content: mensaje });
   state.history = state.history.slice(-10);
 
-  const textLower = mensaje.toLowerCase();
+const textLower = mensaje.toLowerCase();
+// 🔎 Detectar producto automáticamente
+
+const productos = await getBusinessProducts(business.id);
+
+const productoDetectado = findProductFromText(productos, mensaje);
+
+if (productoDetectado) {
+  state.productoSeleccionado = productoDetectado;
+  state.perfil.producto = productoDetectado.name;
+
+  console.log("🛒 Producto detectado:", productoDetectado.name);
+}
 
   // 💰 CONTROL DE PAGOS INTELIGENTE
   if (
