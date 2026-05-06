@@ -549,6 +549,12 @@ if (textLower === "confirmo") {
 
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
 
+  console.log("💳 CONFIG PAGO:", {
+  payment_enabled: business.payment_enabled,
+  payment_mode: business.payment_mode,
+  payment_link_url: business.payment_link_url
+});
+
 let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
 
 if (business.payment_enabled && business.payment_mode === "link") {
