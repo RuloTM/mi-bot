@@ -19,7 +19,7 @@ const fields = {
   prompt: document.getElementById("prompt"),
   active: document.getElementById("active"),
   payment_enabled: document.getElementById("payment_enabled"),
-  payment_mode: document.getElementById("payment_mode")
+  payment_mode: document.getElementById("payment_mode"),
   payment_link_url: document.getElementById("payment_link_url")
 };
 
@@ -106,7 +106,7 @@ form.addEventListener("submit", async (e) => {
       prompt: fields.prompt.value.trim(),
       active: fields.active.value === "true",
       payment_enabled: fields.payment_enabled.value === "true",
-      payment_mode: fields.payment_mode.value
+      payment_mode: fields.payment_mode.value,
       payment_link_url: fields.payment_link_url.value.trim()
 
     };
