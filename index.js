@@ -1599,6 +1599,8 @@ app.put("/business/config", requireAuth, async (req, res) => {
       payment_methods,
       welcome_message,
       active,
+      payment_enabled,
+      payment_mode,
       payment_link_url
     } = req.body;
 
@@ -1612,6 +1614,10 @@ app.put("/business/config", requireAuth, async (req, res) => {
     if (payment_methods !== undefined) payload.payment_methods = String(payment_methods).trim();
     if (welcome_message !== undefined) payload.welcome_message = String(welcome_message).trim();
     if (active !== undefined) payload.active = !!active;
+
+    if (payment_enabled !== undefined) payload.payment_enabled = !!payment_enabled;
+    if (payment_mode !== undefined) payload.payment_mode = String(payment_mode).trim();
+
     if (payment_link_url !== undefined) {
   payload.payment_link_url = String(payment_link_url).trim();
 }
