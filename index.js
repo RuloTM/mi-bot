@@ -162,6 +162,7 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
+
     const business = await getBusiness(phoneNumberId);
     if (!business) {
       console.log("⚠️ Negocio no encontrado para:", phoneNumberId);
@@ -378,7 +379,8 @@ if (wantsCatalog) {
 
   await saveCustomerState(business.id, customer.id, state);
   return res.sendStatus(200);
-}
+
+} 
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
@@ -407,77 +409,6 @@ Si todo está correcto, responde: CONFIRMO`;
   await replyAndPersist(business, customer, state, from, resumenMessage);
   return res.sendStatus(200);
 }
-
-// 👇👇👇 PEGA AQUÍ EXACTO 👇👇👇
-
-// ✅ CONFIRMAR PEDIDO
-if (textLower.includes("confirmo")) {
-
-  if (!state.productoSeleccionado) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "❌ No tengo un producto seleccionado aún."
-    );
-    return res.sendStatus(200);
-  }
-
-  const orderSaved = await saveOrder(
-    business.id,
-    customer.id,
-    state.perfil,
-    business
-  );
-
-  if (!orderSaved) {
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      "❌ Hubo un error al guardar tu pedido."
-    );
-    return res.sendStatus(200);
-  }
-
-  let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
-
-  if (business.payment_enabled && business.payment_mode === "link") {
-    const linkPago = String(business.payment_link_url || "").trim();
-
-    if (linkPago) {
-      mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
-
-Puedes realizar tu pago aquí:
-
-👉 ${linkPago}
-
-Total a pagar: $${Number(orderSaved.total || 0).toFixed(2)} MXN
-
-En cuanto se refleje el pago, procesamos tu pedido 🚀`;
-    }
-  }
-
-  userStates[from] = {
-    etapa: null,
-    perfil: {},
-    productoSeleccionado: null,
-    history: []
-  };
-
-  await replyAndPersist(
-    business,
-    customer,
-    userStates[from],
-    from,
-    mensajeFinal
-  );
-
-  return res.sendStatus(200);
-}
-
 
 // 5) Etapa: pedir ciudad y mostrar resumen
 if (state.etapa === "pidiendo_ciudad") {
@@ -618,13 +549,33 @@ if (textLower === "confirmo") {
 
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
 
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    "¡Listo! 🎉 Tu pedido ha sido confirmado."
-  );
+let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
+
+if (business.payment_enabled && business.payment_mode === "link") {
+  const linkPago = String(business.payment_link_url || "").trim();
+
+  if (linkPago) {
+    mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
+
+Puedes realizar tu pago aquí:
+
+👉 ${linkPago}
+
+Total a pagar: $${Number(orderSaved.total || 0).toFixed(2)} MXN
+
+En cuanto se refleje el pago, procesamos tu pedido 🚀`;
+  }
+}
+
+await replyAndPersist(
+  business,
+  customer,
+  state,
+  from,
+  mensajeFinal
+);
+
+
 
   await clearCustomerState(business.id, customer.id);
   state = getEmptyState(); // 🔥 reset inmediato en memoria
@@ -742,10 +693,11 @@ await saveCustomerState(business.id, customer.id, state);
 return res.sendStatus(200);
 
 } catch (error) {
-    console.error("❌ Error en webhook:", error);
-    return res.sendStatus(500);
-  }
+  console.error("❌ Error en webhook:", error);
+  return res.sendStatus(500);
+}
 });
+
 
 async function getBusiness(phoneNumberId) {
   const { data, error } = await supabase
