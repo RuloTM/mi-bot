@@ -717,6 +717,8 @@ async function getBusiness(phoneNumberId) {
     return null;
   }
 
+  console.log("🏪 BUSINESS:", data);
+
   return data;
 }
 
