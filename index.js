@@ -712,12 +712,23 @@ async function getBusiness(phoneNumberId) {
     .eq("phone_number_id", phoneNumberId)
     .single();
 
-  if (error) {
-    console.log("Negocio no encontrado");
-    return null;
-  }
+ if (error || !data) {
+  console.log("❌ Negocio no encontrado para:", phoneNumberId);
+  return null;
+}
+
+if (!data.access_token) {
+  console.log("❌ ESTE NEGOCIO NO TIENE TOKEN:", data.name);
+  return null;
+}
 
   console.log("🏪 BUSINESS:", data);
+  console.log("🏪 BUSINESS DETECTADO:", {
+  name: data.name,
+  phone_number_id: data.phone_number_id,
+  tiene_token: !!data.access_token
+});
+
 
   return data;
 }
