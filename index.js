@@ -704,6 +704,10 @@ return res.sendStatus(200);
 }
 });
 
+app.post("/save-whatsapp-connection", async (req, res) => {
+  console.log("📲 CONEXIÓN WHATSAPP META:", req.body);
+  res.json({ ok: true });
+});
 
 async function getBusiness(phoneNumberId) {
   const { data, error } = await supabase

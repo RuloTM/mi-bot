@@ -985,21 +985,33 @@ if (productForm) {
 
 <script>
 function connectWhatsApp() {
-  FB.login(function(response) {
+  FB.login(async function(response) {
     if (response.authResponse) {
       console.log("Conectado:", response);
 
-      alert("WhatsApp conectado correctamente 🚀");
+      const res = await fetch("/save-whatsapp-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(response)
+      });
 
-      // aquí después vamos a mandar esto a tu backend
+      if (!res.ok) {
+        alert("Se conectó Meta, pero no se pudo guardar en el backend");
+        return;
+      }
+
+      alert("WhatsApp conectado y enviado al backend 🚀");
     } else {
       alert("Cancelaste la conexión");
     }
   }, {
-    scope: 'whatsapp_business_management,whatsapp_business_messaging'
+    scope: "whatsapp_business_management,whatsapp_business_messaging"
   });
 }
 </script>
+
 
 <script>
 window.fbAsyncInit = function() {
