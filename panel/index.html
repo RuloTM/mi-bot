@@ -316,8 +316,22 @@
           <h1>Panel de Pedidos</h1>
           <p>Vista operativa del bot SaaS</p>
 
+<div style="margin-top: 10px;">
+  <button onclick="connectWhatsApp()" style="
+    background: #25D366;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  ">
+    Conectar WhatsApp
+  </button>
+</div>
+
+
 <div style="margin-top:10px;">
-  <a href="/panel/config.html" style="
+  <a href="/config" style="
     display:inline-block;
     padding:10px 14px;
     background:#111827;
@@ -965,6 +979,38 @@ if (productForm) {
 
 
     initPanel();
+</script>
+<!-- SDK DE FACEBOOK -->
+<script async defer src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+<script>
+function connectWhatsApp() {
+  FB.login(function(response) {
+    if (response.authResponse) {
+      console.log("Conectado:", response);
+
+      alert("WhatsApp conectado correctamente 🚀");
+
+      // aquí después vamos a mandar esto a tu backend
+    } else {
+      alert("Cancelaste la conexión");
+    }
+  }, {
+    scope: 'whatsapp_business_management,whatsapp_business_messaging'
+  });
+}
+</script>
+
+<script>
+window.fbAsyncInit = function() {
+  FB.init({
+    appId: '1216183267371726',
+    cookie: true,
+    xfbml: true,
+    version: 'v20.0'
+  });
+};
+
   </script>
 </body>
 </html>
