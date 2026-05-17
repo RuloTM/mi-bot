@@ -317,7 +317,8 @@
           <p>Vista operativa del bot SaaS</p>
 
 <div style="margin-top: 10px;">
-  <button onclick="connectWhatsApp()" style="
+  
+  <button onclick="window.connectWhatsApp()" style="
     background: #25D366;
     color: white;
     padding: 10px 15px;
@@ -990,6 +991,7 @@ window.fbAsyncInit = function() {
 };
 
 // 👇 FUNCIÓN DEL BOTÓN
+console.log("✅ función connectWhatsApp cargada");
 window.connectWhatsApp = function () {
 
   if (typeof FB === "undefined") {
