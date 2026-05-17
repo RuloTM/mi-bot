@@ -773,7 +773,7 @@ async function initPanel() {
 setInterval(async () => {
   console.log("🔄 Recargando pedidos...");
   await loadOrders();
-}, 5000);
+}, 60000);
 
   } catch (error) {
     console.error("Error iniciando panel:", error);
@@ -997,13 +997,13 @@ window.connectWhatsApp = function () {
     return;
   }
 
-  FB.login(async function(response) {
+    FB.login(function(response) {
     console.log("📲 RESPUESTA META:", response);
 
-    if (response.authResponse) {
+    if (response.authResponse) {	
 
-      const res = await fetch("/save-whatsapp-connection", {
-        method: "POST",
+      fetch("/save-whatsapp-connection", {
+              method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
@@ -1013,13 +1013,19 @@ window.connectWhatsApp = function () {
         })
       });
 
-      if (!res.ok) {
-        alert("Se conectó Meta, pero falló backend");
-        return;
-      }
 
-      alert("WhatsApp conectado correctamente 🚀");
+.then(res => {
+  if (!res.ok) {
+    alert("Se conectó Meta, pero falló backend");
+    return;
+  }
 
+  alert("WhatsApp conectado correctamente 🚀");
+})
+.catch(err => {
+  console.error("❌ Error guardando conexión:", err);
+  alert("Error guardando conexión");
+});
     } else {
       alert("Cancelaste la conexión ❌");
     }
