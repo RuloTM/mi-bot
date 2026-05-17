@@ -318,16 +318,9 @@
 
 <div style="margin-top: 10px;">
   
-  <button onclick="window.connectWhatsApp()" style="
-    background: #25D366;
-    color: white;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  ">
-    Conectar WhatsApp
-  </button>
+<button id="connectWhatsAppBtn" type="button">
+  Conectar WhatsApp
+</button>
 </div>
 
 
@@ -979,68 +972,150 @@ if (productForm) {
 }
     initPanel();
 </script>
-
 <script>
-window.fbAsyncInit = function() {
-  FB.init({
-    appId: '1216183267371726',
-    cookie: true,
-    xfbml: true,
-    version: 'v20.0'
-  });
-};
+  window.fbAsyncInit = function () {
+    FB.init({
+      appId: '1216183267371726',
+      cookie: true,
+      xfbml: true,
+      version: 'v21.0'
+    });
 
-// 👇 FUNCIÓN DEL BOTÓN
-console.log("✅ función connectWhatsApp cargada");
-window.connectWhatsApp = function () {
+    console.log("✅ Facebook SDK cargado");
 
-  if (typeof FB === "undefined") {
-    alert("Facebook SDK aún no cargó. Recarga la página.");
-    return;
-  }
+    const btn = document.getElementById('connectWhatsAppBtn');
 
-    FB.login(function(response) {
-    console.log("📲 RESPUESTA META:", response);
-
-    if (response.authResponse) {	
-
-      fetch("/save-whatsapp-connection", {
-              method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          authResponse: response.authResponse,
-          status: response.status
-        })
-      });
-
-
-.then(res => {
-  if (!res.ok) {
-    alert("Se conectó Meta, pero falló backend");
-    return;
-  }
-
-  alert("WhatsApp conectado correctamente 🚀");
-})
-.catch(err => {
-  console.error("❌ Error guardando conexión:", err);
-  alert("Error guardando conexión");
-});
-    } else {
-      alert("Cancelaste la conexión ❌");
+    if (!btn) {
+      console.error('❌ No existe el botón connectWhatsAppBtn');
+      return;
     }
 
-  }, {
-    scope: "whatsapp_business_management,whatsapp_business_messaging,business_management"
-  });
-};
+    btn.addEventListener('click', function () {
+      console.log('🟢 Click en Conectar WhatsApp');
+
+      FB.login(function (response) {
+        console.log('📲 Respuesta FB.login:', response);
+
+        if (!response.authResponse) {
+          alert('No se completó la conexión');
+          return;
+        }
+
+        const code = response.authResponse.code;
+
+        if (!code) {
+          console.error('❌ No llegó code');
+          alert('Meta no regresó code');
+          return;
+        }
+
+        saveWhatsAppConnection(code);
+
+      }, {
+        config_id: 'AQUI_TU_CONFIG_ID_REAL',
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          setup: {},
+          featureType: 'whatsapp_business_app_onboarding'
+        }
+      });
+    });
+  };
+
+  async function saveWhatsAppConnection(code) {
+    console.log('💾 Guardando code:', code);
+
+    const { data: { session } } = await window.supabase.auth.getSession();
+
+    if (!session) {
+      alert("Sesión expirada. Inicia sesión otra vez.");
+      return;
+    }
+
+    const res = await fetch('/save-whatsapp-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await res.json();
+    console.log('✅ Backend:', data);
+
+    if (!res.ok) {
+      alert(data.error || "Error guardando conexión");
+      return;
+    }
+
+    alert("WhatsApp conectado correctamente 🚀");
+  }
+</script>
+
+<script async defer crossorigin="anonymous"
+  src="https://connect.facebook.net/es_LA/sdk.js">
 </script>
 
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js"></script>
 
+<script>
+  const btn = document.getElementById('connectWhatsAppBtn');
 
+  if (!btn) {
+    console.error('❌ No existe el botón connectWhatsAppBtn');
+  } else {
+    btn.addEventListener('click', function () {
+      console.log('🟢 Click en Conectar WhatsApp');
+
+      FB.login(function (response) {
+        console.log('📲 Respuesta FB.login:', response);
+
+        if (!response.authResponse) {
+          alert('No se completó la conexión');
+          return;
+        }
+
+        const code = response.authResponse.code;
+
+        if (!code) {
+          console.error('❌ No llegó code');
+          return;
+        }
+
+        saveWhatsAppConnection(code);
+
+      }, {
+        config_id: 'AQUI_TU_CONFIG_ID_REAL',
+        response_type: 'code',
+        override_default_response_type: true,
+        extras: {
+          setup: {},
+          featureType: 'whatsapp_business_app_onboarding'
+        }
+      });
+    });
+  }
+
+  async function saveWhatsAppConnection(code) {
+    console.log('💾 Guardando code:', code);
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    const res = await fetch('/save-whatsapp-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await res.json();
+    console.log('✅ Backend:', data);
+  }
+</script>
 
  
 </body>
