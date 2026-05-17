@@ -976,46 +976,8 @@ if (productForm) {
     }
   });
 }
-
-
     initPanel();
 </script>
-<!-- SDK DE FACEBOOK -->
-<script async defer src="https://connect.facebook.net/en_US/sdk.js"></script>
-
-<script>
-function connectWhatsApp() {
-  	
-    if (response.authResponse) {
-      console.log("Conectado:", response);
-
-      const res = await fetch("/save-whatsapp-connection", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-        authResponse: response.authResponse,
-        status: response.status
-})
-        });
-
-      if (!res.ok) {
-        alert("Se conectó Meta, pero no se pudo guardar en el backend");
-        return;
-      }
-
-      alert("WhatsApp conectado y enviado al backend 🚀");
-    } else {
-      alert("Cancelaste la conexión");
-    }
-  }, {
-    scope: "whatsapp_business_management,whatsapp_business_messaging"
-  });
-}
-</script>
-
 
 <script>
 window.fbAsyncInit = function() {
@@ -1027,6 +989,51 @@ window.fbAsyncInit = function() {
   });
 };
 
-  </script>
+// 👇 FUNCIÓN DEL BOTÓN
+window.connectWhatsApp = function () {
+
+  if (typeof FB === "undefined") {
+    alert("Facebook SDK aún no cargó. Recarga la página.");
+    return;
+  }
+
+  FB.login(async function(response) {
+    console.log("📲 RESPUESTA META:", response);
+
+    if (response.authResponse) {
+
+      const res = await fetch("/save-whatsapp-connection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          authResponse: response.authResponse,
+          status: response.status
+        })
+      });
+
+      if (!res.ok) {
+        alert("Se conectó Meta, pero falló backend");
+        return;
+      }
+
+      alert("WhatsApp conectado correctamente 🚀");
+
+    } else {
+      alert("Cancelaste la conexión ❌");
+    }
+
+  }, {
+    scope: "whatsapp_business_management,whatsapp_business_messaging,business_management"
+  });
+};
+</script>
+
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js"></script>
+
+
+
+ 
 </body>
 </html>
