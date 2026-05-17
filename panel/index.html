@@ -985,7 +985,7 @@ if (productForm) {
 
 <script>
 function connectWhatsApp() {
-  FB.login(async function(response) {
+  	
     if (response.authResponse) {
       console.log("Conectado:", response);
 
@@ -994,8 +994,12 @@ function connectWhatsApp() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(response)
-      });
+
+        body: JSON.stringify({
+        authResponse: response.authResponse,
+        status: response.status
+})
+        });
 
       if (!res.ok) {
         alert("Se conectó Meta, pero no se pudo guardar en el backend");
