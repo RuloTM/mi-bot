@@ -44,24 +44,105 @@ app.get("/panel/config.js", (req, res) => {
   res.sendFile(path.join(__dirname, "panel", "config.js"));
 });
 app.get("/privacy", (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Política de Privacidad</title>
-    </head>
-    <body>
-      <h1>Política de Privacidad</h1>
-      <p>Este servicio utiliza WhatsApp para responder mensajes de clientes.</p>
-      <p>No compartimos información con terceros.</p>
-      <p>Los datos se utilizan únicamente para atención al cliente y gestión de pedidos.</p>
-      <p>Si tienes dudas, contáctanos.</p>
-    </body>
-    </html>
-  `);
-});
+
+res.send(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Política de Privacidad | Prattz Labs</title>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin:auto;
+      padding:40px;
+      line-height:1.7;
+      background:#f8fafc;
+      color:#111827;
+    }
+
+    h1,h2{
+      color:#0f172a;
+    }
+
+    .card{
+      background:white;
+      padding:40px;
+      border-radius:12px;
+      box-shadow:0 2px 10px rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>Política de Privacidad</h1>
+
+<p><strong>Última actualización:</strong> 18 de mayo de 2026</p>
+
+<p>
+Prattz Labs respeta la privacidad de sus usuarios y clientes.
+Esta política describe cómo recopilamos, utilizamos y protegemos
+la información utilizada dentro de nuestros servicios.
+</p>
+
+<h2>Información que recopilamos</h2>
+
+<ul>
+  <li>Nombre</li>
+  <li>Número telefónico</li>
+  <li>Mensajes enviados mediante WhatsApp</li>
+  <li>Información de pedidos y clientes</li>
+  <li>Información básica del dispositivo y navegador</li>
+</ul>
+
+<h2>Uso de la información</h2>
+
+<p>
+Utilizamos la información para operar nuestros bots automatizados,
+mejorar la experiencia del usuario, gestionar pedidos y brindar soporte técnico.
+</p>
+
+<h2>Servicios de terceros</h2>
+
+<p>
+Nuestra plataforma puede utilizar servicios externos como:
+</p>
+
+<ul>
+  <li>WhatsApp Business Platform</li>
+  <li>Meta Platforms</li>
+  <li>OpenAI</li>
+  <li>Supabase</li>
+</ul>
+
+<h2>Protección de datos</h2>
+
+<p>
+Implementamos medidas razonables de seguridad para proteger la información
+contra accesos no autorizados o alteraciones.
+</p>
+
+<h2>Contacto</h2>
+
+<p>
+Si tienes preguntas relacionadas con esta política puedes contactarnos en:
+</p>
+
+<p>
+contacto@prattzlabs.com
+</p>
+
+</div>
+
+</body>
+</html>
+`);
 
 app.get("/terms", (req, res) => {
   res.send(`
