@@ -147,20 +147,109 @@ contacto@prattzlabs.com
 
 app.get("/terms", (req, res) => {
   res.send(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Términos del Servicio</title>
-    </head>
-    <body>
-      <h1>Términos del Servicio</h1>
-      <p>Este sistema automatiza respuestas en WhatsApp para atención a clientes.</p>
-      <p>El uso del servicio es responsabilidad del cliente.</p>
-      <p>No garantizamos disponibilidad continua ni ausencia total de errores.</p>
-    </body>
-    </html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Términos y Condiciones | Prattz Labs</title>
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin:auto;
+      padding:40px;
+      line-height:1.7;
+      background:#f8fafc;
+      color:#111827;
+    }
+
+    h1,h2{
+      color:#0f172a;
+    }
+
+    .card{
+      background:white;
+      padding:40px;
+      border-radius:12px;
+      box-shadow:0 2px 10px rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>Términos y Condiciones</h1>
+
+<p><strong>Última actualización:</strong> 18 de mayo de 2026</p>
+
+<p>
+Bienvenido a Prattz Labs. Al utilizar nuestros servicios,
+aceptas los siguientes términos y condiciones.
+</p>
+
+<h2>Uso del servicio</h2>
+
+<p>
+Nuestra plataforma proporciona herramientas de automatización,
+bots conversacionales y servicios relacionados con WhatsApp Business.
+</p>
+
+<p>
+El usuario es responsable del uso adecuado del sistema y del contenido
+enviado mediante la plataforma.
+</p>
+
+<h2>Disponibilidad</h2>
+
+<p>
+Aunque buscamos ofrecer un servicio estable y continuo,
+no garantizamos disponibilidad ininterrumpida ni ausencia total de errores.
+</p>
+
+<h2>Responsabilidad del usuario</h2>
+
+<p>
+El cliente es responsable de:
+</p>
+
+<ul>
+  <li>La información enviada mediante el sistema</li>
+  <li>El cumplimiento de políticas de Meta y WhatsApp</li>
+  <li>El uso legal de la plataforma</li>
+</ul>
+
+<h2>Limitación de responsabilidad</h2>
+
+<p>
+Prattz Labs no será responsable por pérdidas indirectas,
+interrupciones de servicio, bloqueos de cuentas externas
+o daños derivados del uso de plataformas de terceros.
+</p>
+
+<h2>Modificaciones</h2>
+
+<p>
+Podemos actualizar estos términos en cualquier momento sin previo aviso.
+</p>
+
+<h2>Contacto</h2>
+
+<p>
+Para dudas o soporte puedes contactarnos en:
+</p>
+
+<p>
+contacto@prattzlabs.com
+</p>
+
+</div>
+
+</body>
+</html>
   `);
 });
 
