@@ -143,6 +143,7 @@ contacto@prattzlabs.com
 </body>
 </html>
 `);
+});
 
 app.get("/terms", (req, res) => {
   res.send(`
