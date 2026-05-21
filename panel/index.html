@@ -1058,65 +1058,6 @@ if (productForm) {
   src="https://connect.facebook.net/es_LA/sdk.js">
 </script>
 
-<script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_LA/sdk.js"></script>
 
-<script>
-  const btn = document.getElementById('connectWhatsAppBtn');
-
-  if (!btn) {
-    console.error('❌ No existe el botón connectWhatsAppBtn');
-  } else {
-    btn.addEventListener('click', function () {
-      console.log('🟢 Click en Conectar WhatsApp');
-
-      FB.login(function (response) {
-        console.log('📲 Respuesta FB.login:', response);
-
-        if (!response.authResponse) {
-          alert('No se completó la conexión');
-          return;
-        }
-
-        const code = response.authResponse.code;
-
-        if (!code) {
-          console.error('❌ No llegó code');
-          return;
-        }
-
-        saveWhatsAppConnection(code);
-
-      }, {
-        config_id: 'AQUI_TU_CONFIG_ID_REAL',
-        response_type: 'code',
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: 'whatsapp_business_app_onboarding'
-        }
-      });
-    });
-  }
-
-  async function saveWhatsAppConnection(code) {
-    console.log('💾 Guardando code:', code);
-
-    const { data: { session } } = await supabase.auth.getSession();
-
-    const res = await fetch('/save-whatsapp-connection', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ code })
-    });
-
-    const data = await res.json();
-    console.log('✅ Backend:', data);
-  }
-</script>
-
- 
 </body>
 </html>
