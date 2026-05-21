@@ -8,6 +8,10 @@ const OpenAI = require("openai");
 const axios = require("axios");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -2051,6 +2055,93 @@ app.post("/products/:id/toggle", requireAuth, async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 console.log("🚀 VERSION NUEVA WEBHOOK 2026-04-04 20:00");
+
+app.post("/save-whatsapp-connection", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.replace("Bearer ", "");
+
+    if (!token) {
+      return res.status(401).json({ error: "No auth token" });
+    }
+
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !userData.user) {
+      return res.status(401).json({ error: "Sesión inválida" });
+    }
+
+    const userId = userData.user.id;
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("business_id")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profile?.business_id) {
+      return res.status(400).json({
+        error: "No se encontró business_id para este usuario"
+      });
+    }
+
+    const {
+      meta_business_id,
+      waba_id,
+      phone_number_id,
+      display_phone_number,
+      verified_name,
+      access_token
+    } = req.body;
+
+    const { data, error } = await supabaseAdmin
+      .from("whatsapp_connections")
+      .upsert(
+        {
+          business_id: profile.business_id,
+          user_id: userId,
+          meta_business_id,
+          waba_id,
+          phone_number_id,
+          display_phone_number,
+          verified_name,
+          access_token,
+          status: phone_number_id
+            ? "connected"
+            : "pending_verification",
+          connected_at: phone_number_id
+            ? new Date().toISOString()
+            : null,
+          updated_at: new Date().toISOString()
+        },
+        {
+          onConflict: "business_id"
+        }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      return res.status(500).json({
+        error: error.message
+      });
+    }
+
+    return res.json({
+      ok: true,
+      connection: data
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      error: "Error interno"
+    });
+  }
+});
 
 app.listen(PORT, () => {
   console.log("Servidor corriendo en puerto", PORT);
