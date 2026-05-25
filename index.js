@@ -1921,6 +1921,7 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
 });
 
 app.get('/whatsapp-connection', async (req, res) => {
+
   try {
 
     const authHeader = req.headers.authorization;
@@ -1956,26 +1957,27 @@ app.get('/whatsapp-connection', async (req, res) => {
       });
     }
 
-    const { data: connection } = await supabase
-      .from('whatsapp_connections')
+    const { data: business } = await supabase
+      .from('businesses')
       .select('*')
-      .eq('business_id', profile.business_id)
+      .eq('id', profile.business_id)
       .single();
 
     res.json({
-      connected: !!connection,
-      connection
+      connected: !!business?.phone_number_id,
+      connection: business
     });
 
   } catch (error) {
+
     console.error('Error whatsapp connection:', error);
 
     res.status(500).json({
       error: 'Error interno'
     });
+
   }
 });
-
 
 app.get("/products", requireAuth, async (req, res) => {
   try {
