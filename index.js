@@ -1920,6 +1920,63 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
   }
 });
 
+app.get('/whatsapp-connection', async (req, res) => {
+  try {
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({
+        error: 'No autorizado'
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return res.status(401).json({
+        error: 'Sesión inválida'
+      });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('business_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.business_id) {
+      return res.status(404).json({
+        error: 'Business no encontrado'
+      });
+    }
+
+    const { data: connection } = await supabase
+      .from('whatsapp_connections')
+      .select('*')
+      .eq('business_id', profile.business_id)
+      .single();
+
+    res.json({
+      connected: !!connection,
+      connection
+    });
+
+  } catch (error) {
+    console.error('Error whatsapp connection:', error);
+
+    res.status(500).json({
+      error: 'Error interno'
+    });
+  }
+});
+
+
 app.get("/products", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase

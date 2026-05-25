@@ -368,6 +368,16 @@
         </div>
       </div>
 
+<div class="card">
+  <h3>WhatsApp</h3>
+
+  <p id="waStatus">
+    Verificando...
+  </p>
+
+  <small id="waNumber"></small>
+</div>
+</div>
       <div class="table-card">
         <table>
           <thead>
@@ -709,6 +719,48 @@ async function authFetch(url, options = {}) {
       }
     }
 
+async function loadWhatsAppStatus() {
+
+  try {
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    const res = await fetch('/whatsapp-connection', {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
+    });
+
+    const data = await res.json();
+
+    const waStatus = document.getElementById('waStatus');
+    const waNumber = document.getElementById('waNumber');
+
+    if (data.connected) {
+
+      waStatus.innerHTML = '🟢 Conectado';
+
+      waNumber.innerHTML =
+        data.connection.phone_number || '';
+
+    } else {
+
+      waStatus.innerHTML = '🟡 Pendiente';
+
+      waNumber.innerHTML = '';
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+}
+
+
 async function login(email, password) {
   setLoginError("");
   loginBtn.disabled = true;
@@ -761,6 +813,7 @@ async function initPanel() {
 
     await loadMe();
     await loadOrders();
+    await loadWhatsAppStatus();
     showApp();
     await loadProducts();
 
@@ -796,6 +849,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       currentAccessToken = session.access_token;
       await loadMe();
       await loadOrders();
+      await loadWhatsAppStatus();
       showApp();
       await loadProducts();
     } catch (error) {
