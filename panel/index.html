@@ -813,8 +813,8 @@ async function initPanel() {
 
     await loadMe();
     await loadOrders();
-    await loadWhatsAppStatus();
     showApp();
+    loadWhatsAppStatus();
     await loadProducts();
 
 setInterval(async () => {
@@ -849,8 +849,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       currentAccessToken = session.access_token;
       await loadMe();
       await loadOrders();
-      await loadWhatsAppStatus();
       showApp();
+      loadWhatsAppStatus();
       await loadProducts();
     } catch (error) {
       console.error("Error tras auth change:", error);
