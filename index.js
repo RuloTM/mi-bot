@@ -1489,31 +1489,45 @@ app.post("/mensaje", async (req, res) => {
   }
 });
 
+
 async function enviarWhatsApp(to, texto, business) {
-  const token = business.access_token;
-  const phoneNumberId = business.phone_number_id;
+  try {
+    const token = business.access_token;
+    const phoneNumberId = business.phone_number_id;
 
-  if (!token || !phoneNumberId) {
-    throw new Error("Este negocio no tiene access_token o phone_number_id");
-  }
-
-  const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
-
-  await axios.post(
-    url,
-    {
-      messaging_product: "whatsapp",
-      to,
-      text: { body: texto }
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
+    if (!token || !phoneNumberId) {
+      throw new Error("Este negocio no tiene access_token o phone_number_id");
     }
-  );
+
+    const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+
+    const response = await axios.post(
+      url,
+      {
+        messaging_product: "whatsapp",
+        to,
+        text: { body: texto }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    console.log("✅ WhatsApp enviado:", response.data);
+
+  } catch (error) {
+    console.error("❌ Error enviando WhatsApp:", error.message);
+    console.error("❌ META ERROR STATUS:", error.response?.status);
+    console.error("❌ META ERROR DATA:", JSON.stringify(error.response?.data, null, 2));
+    throw error;
+  }
 }
+
+
+
 
 async function enviarImagenWhatsApp(to, producto, business) {
   const token = business.access_token;
