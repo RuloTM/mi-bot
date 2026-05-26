@@ -401,6 +401,33 @@
         </div>
       </div>
 
+<div class="table-card" style="margin-top:24px;">
+  <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
+    <h3 style="margin:0;">⚙️ Configuración del negocio</h3>
+  </div>
+
+  <form id="businessConfigForm" style="padding:16px; display:grid; gap:12px;">
+    <input id="businessName" type="text" placeholder="Nombre del negocio"
+      style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+    <input id="businessCity" type="text" placeholder="Ciudad"
+      style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+    <textarea id="businessPrompt" placeholder="Prompt del bot"
+      style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-height:120px;"></textarea>
+
+    <input id="businessPhoneNumberId" type="text" placeholder="Phone Number ID"
+      style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+    <input id="businessAccessToken" type="password" placeholder="Access Token"
+      style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+    <button type="submit" class="btn-paid" style="width:max-content;">
+      Guardar configuración
+    </button>
+  </form>
+</div>
+
       <div class="table-card" style="margin-top:24px;">
         <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
           <h3 style="margin:0;">Conversación del cliente</h3>
@@ -760,6 +787,66 @@ async function loadWhatsAppStatus() {
   }
 }
 
+async function loadBusinessConfig() {
+  try {
+    const res = await authFetch("/business-config");
+
+    if (!res.ok) {
+      console.error("No se pudo cargar configuración");
+      return;
+    }
+
+    const business = await res.json();
+
+    document.getElementById("businessName").value = business.name || "";
+    document.getElementById("businessCity").value = business.city || "";
+    document.getElementById("businessPrompt").value = business.prompt || "";
+    document.getElementById("businessPhoneNumberId").value = business.phone_number_id || "";
+    document.getElementById("businessAccessToken").value = business.access_token || "";
+
+  } catch (error) {
+    console.error("Error cargando configuración negocio:", error);
+  }
+}
+
+const businessConfigForm = document.getElementById("businessConfigForm");
+
+if (businessConfigForm) {
+  businessConfigForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    try {
+      const body = {
+        name: document.getElementById("businessName").value.trim(),
+        city: document.getElementById("businessCity").value.trim(),
+        prompt: document.getElementById("businessPrompt").value.trim(),
+        phone_number_id: document.getElementById("businessPhoneNumberId").value.trim(),
+        access_token: document.getElementById("businessAccessToken").value.trim()
+      };
+
+      const res = await authFetch("/business-config", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo guardar configuración");
+      }
+
+      alert("Configuración guardada correctamente 🚀");
+      await loadWhatsAppStatus();
+
+    } catch (error) {
+      console.error("Error guardando configuración:", error);
+      alert(error.message || "Error guardando configuración");
+    }
+  });
+}
 
 async function login(email, password) {
   setLoginError("");
@@ -815,6 +902,7 @@ async function initPanel() {
     await loadOrders();
     showApp();
     loadWhatsAppStatus();
+    loadBusinessConfig();
     await loadProducts();
 
 setInterval(async () => {
@@ -851,6 +939,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       await loadOrders();
       showApp();
       loadWhatsAppStatus();
+      loadBusinessConfig();
       await loadProducts();
     } catch (error) {
       console.error("Error tras auth change:", error);
