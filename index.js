@@ -1979,6 +1979,62 @@ app.get('/whatsapp-connection', async (req, res) => {
   }
 });
 
+app.get("/business-config", requireAuth, async (req, res) => {
+  try {
+    const businessId = req.user.business_id;
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .select("id, name, city, prompt, phone_number_id, access_token")
+      .eq("id", businessId)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error("Error get business config:", error);
+    res.status(500).json({ error: "Error cargando configuración" });
+  }
+});
+
+app.put("/business-config", requireAuth, async (req, res) => {
+  try {
+    const businessId = req.user.business_id;
+
+    const {
+      name,
+      city,
+      prompt,
+      phone_number_id,
+      access_token
+    } = req.body;
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .update({
+        name,
+        city,
+        prompt,
+        phone_number_id,
+        access_token
+      })
+      .eq("id", businessId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      ok: true,
+      business: data
+    });
+  } catch (error) {
+    console.error("Error update business config:", error);
+    res.status(500).json({ error: "Error guardando configuración" });
+  }
+});
+
 app.get("/products", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
