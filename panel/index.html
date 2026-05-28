@@ -1268,14 +1268,43 @@ function resetProductForm() {
 }
 
 window.editProduct = function editProduct(product) {
-  document.getElementById("editingProductId").value = product.id || "";
-  document.getElementById("productName").value = product.name || "";
-  document.getElementById("productPrice").value = product.price || "";
-  document.getElementById("productImage").value = product.image_url || "";
-  document.getElementById("saveProductBtn").textContent = "Actualizar producto";
-  document.getElementById("cancelEditBtn").style.display = "inline-block";
-};
 
+  document.getElementById("editingProductId").value = product.id || "";
+
+  document.getElementById("productName").value = product.name || "";
+
+  document.getElementById("productPrice").value = product.price || "";
+
+  document.getElementById("productStock").value = product.stock || "";
+
+  document.getElementById("productCategory").value = product.category || "";
+
+  document.getElementById("productSku").value = product.sku || "";
+
+  document.getElementById("productImage").value = product.image_url || "";
+
+  document.getElementById("productDescription").value =
+    product.description || "";
+
+  document.getElementById("productActive").checked =
+    product.active !== false;
+
+  document.getElementById("saveProductBtn").textContent =
+    "Actualizar producto";
+
+  document.getElementById("cancelEditBtn").style.display =
+    "inline-block";
+
+  // 🔥 actualizar preview automáticamente
+  updateProductImagePreview();
+
+  // 🔥 scroll al formulario
+  window.scrollTo({
+    top: document.getElementById("productForm").offsetTop - 100,
+    behavior: "smooth"
+  });
+
+};
 document.getElementById("cancelEditBtn").addEventListener("click", resetProductForm);
 
 const productImageInput = document.getElementById("productImage");
