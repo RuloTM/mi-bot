@@ -528,6 +528,35 @@
     style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
   />
 
+<div
+  id="productImagePreviewBox"
+  style="
+    display:none;
+    grid-column:1/-1;
+    background:#f9fafb;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:12px;
+    max-width:360px;
+  "
+>
+  <p style="margin:0 0 8px; font-weight:700;">Vista previa</p>
+
+  <img
+    id="productImagePreview"
+    src=""
+    alt="Vista previa"
+    style="
+      width:100%;
+      height:220px;
+      object-fit:cover;
+      border-radius:12px;
+      background:#e5e7eb;
+    "
+  />
+</div>
+
+
   <textarea
     id="productDescription"
     placeholder="Descripción"
@@ -1248,6 +1277,34 @@ window.editProduct = function editProduct(product) {
 };
 
 document.getElementById("cancelEditBtn").addEventListener("click", resetProductForm);
+
+const productImageInput = document.getElementById("productImage");
+const productImagePreviewBox = document.getElementById("productImagePreviewBox");
+const productImagePreview = document.getElementById("productImagePreview");
+
+function updateProductImagePreview() {
+  const url = productImageInput?.value?.trim();
+
+  if (!url) {
+    productImagePreviewBox.style.display = "none";
+    productImagePreview.src = "";
+    return;
+  }
+
+  productImagePreviewBox.style.display = "block";
+  productImagePreview.src = url;
+}
+
+if (productImageInput) {
+  productImageInput.addEventListener("input", updateProductImagePreview);
+}
+
+if (productImagePreview) {
+  productImagePreview.onerror = () => {
+    productImagePreview.src = "https://placehold.co/600x400?text=Sin+Imagen";
+  };
+}
+
 
 window.toggleProduct = async function toggleProduct(productId) {
   try {
