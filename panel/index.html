@@ -1092,14 +1092,6 @@ async function createProduct(product) {
   return res.json();
 }
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || "No se pudo crear el producto");
-  }
-
-  return res.json();
-}
-
 async function updateProduct(productId, product) {
   const res = await authFetch(`/products/${productId}`, {
     method: "PUT",
@@ -1108,16 +1100,6 @@ async function updateProduct(productId, product) {
     },
     body: JSON.stringify(product)
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || "No se pudo actualizar el producto");
-  }
-
-  return res.json();
-}
-
-
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
