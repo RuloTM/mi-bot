@@ -437,11 +437,40 @@
         </div>
       </div>
 
-      <div class="table-card" style="margin-top:24px;">
-        <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-          <h3 style="margin:0;">Catálogo del negocio</h3>
-        </div>
+<div class="table-card" style="margin-top:24px;">
 
+  <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+
+    <h3 style="margin:0;">Catálogo del negocio</h3>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+
+      <input
+        id="productSearch"
+        type="text"
+        placeholder="Buscar producto..."
+        style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:220px;"
+      />
+
+      <select
+        id="categoryFilter"
+        style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:180px;"
+      >
+        <option value="">Todas las categorías</option>
+      </select>
+
+      <select
+        id="activeFilter"
+        style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:150px;"
+      >
+        <option value="">Todos</option>
+        <option value="active">Activos</option>
+        <option value="inactive">Inactivos</option>
+      </select>
+
+    </div>
+
+  </div>
         
 
 
@@ -530,14 +559,20 @@
 
         <table>
           <thead>
-            <tr>
-              <th>Imagen</th>
-	      <th>Nombre</th>
-              <th>Precio</th>
-              <th>Activo</th>
-              <th>Creado</th>
-              <th>Acciones</th>
-            </tr>
+            
+<tr>
+  <th>Imagen</th>
+  <th>Producto</th>
+  <th>Precio</th>
+  <th>Categoría</th>
+  <th>Stock</th>
+  <th>Activo</th>
+  <th>Creado</th>
+  <th>Acciones</th>
+</tr>
+
+
+
           </thead>
           <tbody id="productsTable"></tbody>
         </table>
@@ -1016,9 +1051,14 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+
 async function loadProducts() {
   const table = document.getElementById("productsTable");
   const emptyState = document.getElementById("productsEmptyState");
+
+  const searchInput = document.getElementById("productSearch");
+  const categoryFilter = document.getElementById("categoryFilter");
+  const activeFilter = document.getElementById("activeFilter");
 
   try {
     const res = await authFetch("/products");
@@ -1039,41 +1079,101 @@ async function loadProducts() {
 
     emptyState.style.display = "none";
 
-products.forEach(product => {
-  const row = document.createElement("tr");
+    const categories = [...new Set(
+      products
+        .map(p => p.category)
+        .filter(Boolean)
+    )];
 
-  row.innerHTML = `
-    <td>
-      ${
-        product.image_url
-          ? `<img src="${product.image_url}" alt="${product.name || ""}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;">`
-          : "Sin imagen"
-      }
-    </td>
-    <td>${product.name || ""}</td>
-    <td>${formatCurrency(product.price || 0)}</td>
-    <td>${product.active ? "Sí" : "No"}</td>
-    <td>${formatDate(product.created_at)}</td>
-    <td>
-      <div class="actions">
-        <button class="btn-paid" onclick='editProduct(${JSON.stringify(product)})'>Editar</button>
-        <button class="btn-shipped" onclick="toggleProduct('${product.id}')">
-          ${product.active ? "Desactivar" : "Activar"}
-        </button>
-      </div>
-    </td>
-  `;
+    if (categoryFilter && categoryFilter.options.length <= 1) {
+      categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+      });
+    }
 
-  table.appendChild(row);
-});
+    const searchText = (searchInput?.value || "").toLowerCase().trim();
+    const selectedCategory = categoryFilter?.value || "";
+    const selectedActive = activeFilter?.value || "";
 
-    
+    const filteredProducts = products.filter(product => {
+      const matchesSearch =
+        !searchText ||
+        (product.name || "").toLowerCase().includes(searchText) ||
+        (product.description || "").toLowerCase().includes(searchText) ||
+        (product.sku || "").toLowerCase().includes(searchText);
+
+      const matchesCategory =
+        !selectedCategory || product.category === selectedCategory;
+
+      const matchesActive =
+        !selectedActive ||
+        (selectedActive === "active" && product.active) ||
+        (selectedActive === "inactive" && !product.active);
+
+      return matchesSearch && matchesCategory && matchesActive;
+    });
+
+    if (filteredProducts.length === 0) {
+      emptyState.style.display = "block";
+      return;
+    }
+
+    filteredProducts.forEach(product => {
+      const row = document.createElement("tr");
+
+      const stock = Number(product.stock || 0);
+      const stockBadge = stock <= 3
+        ? `<span style="background:#fee2e2;color:#991b1b;padding:4px 8px;border-radius:999px;font-weight:bold;">${stock}</span>`
+        : `<span style="background:#dcfce7;color:#166534;padding:4px 8px;border-radius:999px;font-weight:bold;">${stock}</span>`;
+
+      row.innerHTML = `
+        <td>
+          ${
+            product.image_url
+              ? `<img src="${product.image_url}" alt="${product.name || ""}" style="width:56px;height:56px;object-fit:cover;border-radius:10px;">`
+              : "Sin imagen"
+          }
+        </td>
+
+        <td>
+          <strong>${product.name || ""}</strong><br>
+          <small style="color:#6b7280;">${product.description || ""}</small><br>
+          <small style="color:#6b7280;">SKU: ${product.sku || "N/A"}</small>
+        </td>
+
+        <td>${formatCurrency(product.price || 0)}</td>
+
+        <td>${product.category || "Sin categoría"}</td>
+
+        <td>${stockBadge}</td>
+
+        <td>${product.active ? "Sí" : "No"}</td>
+
+        <td>${formatDate(product.created_at)}</td>
+
+        <td>
+          <div class="actions">
+            <button class="btn-paid" onclick='editProduct(${JSON.stringify(product)})'>Editar</button>
+            <button class="btn-shipped" onclick="toggleProduct('${product.id}')">
+              ${product.active ? "Desactivar" : "Activar"}
+            </button>
+          </div>
+        </td>
+      `;
+
+      table.appendChild(row);
+    });
+
   } catch (error) {
     console.error("Error cargando productos:", error);
     table.innerHTML = "";
     emptyState.style.display = "block";
   }
 }
+
 
 async function createProduct(product) {
   const res = await authFetch("/products", {
@@ -1203,6 +1303,24 @@ productForm.addEventListener("submit", async (e) => {
 });
 
 }
+
+const productSearch = document.getElementById("productSearch");
+const categoryFilter = document.getElementById("categoryFilter");
+const activeFilter = document.getElementById("activeFilter");
+
+if (productSearch) {
+  productSearch.addEventListener("input", loadProducts);
+}
+
+if (categoryFilter) {
+  categoryFilter.addEventListener("change", loadProducts);
+}
+
+if (activeFilter) {
+  activeFilter.addEventListener("change", loadProducts);
+}
+
+
     initPanel();
 </script>
 <script>
