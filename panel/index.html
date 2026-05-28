@@ -1234,7 +1234,13 @@ card.onmouseleave = () => {
   ${product.active ? "Desactivar" : "Activar"}
 </button> 
 
-
+<button
+  class="btn-shipped"
+  style="flex:1; background:#ef4444;"
+  onclick="deleteProduct('${product.id}')"
+>
+  Eliminar
+</button>
 
 
     </div>
@@ -1411,6 +1417,29 @@ window.removeProductImage = async function removeProductImage(productId) {
     alert(error.message || "Error eliminando imagen");
   }
 };
+
+window.deleteProduct = async function deleteProduct(productId) {
+  if (!confirm("¿Eliminar este producto definitivamente?")) return;
+
+  try {
+    const res = await authFetch(`/products/${productId}`, {
+      method: "DELETE"
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "No se pudo eliminar el producto");
+    }
+
+    await loadProducts();
+
+  } catch (error) {
+    console.error("Error eliminando producto:", error);
+    alert(error.message || "Error eliminando producto");
+  }
+};
+
+
 
 window.toggleProduct = async function toggleProduct(productId) {
   try {

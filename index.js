@@ -2224,6 +2224,40 @@ app.post("/products/:id/toggle", requireAuth, async (req, res) => {
   }
 });
 
+app.delete("/products/:id", requireAuth, async (req, res) => {
+  try {
+    const productId = req.params.id;
+
+    const { data: existing, error: existingError } = await supabase
+      .from("products")
+      .select("id, business_id")
+      .eq("id", productId)
+      .single();
+
+    if (existingError || !existing) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    if (existing.business_id !== req.businessId) {
+      return res.status(403).json({ error: "No tienes acceso a este producto" });
+    }
+
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", productId)
+      .eq("business_id", req.businessId);
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Error eliminando producto:", err);
+    res.status(500).json({ error: "Error eliminando producto" });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 
