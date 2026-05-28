@@ -385,30 +385,6 @@ if (!business.active) {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
-const wantsCatalog =
-  textLower.includes("catalogo") ||
-  textLower.includes("catálogo") ||
-  textLower.includes("productos") ||
-  textLower.includes("fundas") ||
-  textLower.includes("que manejas") ||
-  textLower.includes("qué manejas") ||
-  textLower.includes("que tienes") ||
-  textLower.includes("qué tienes");
-
-if (wantsCatalog) {
-  const products = await getBusinessProducts(business.id);
-  const catalogMessage = buildCatalogMessage(products);
-
-  await replyAndPersist(
-    business,
-    from,
-    catalogMessage
-  );
-
-  return res.sendStatus(200);
-}
-
-
 
 // 💳 PRIORIDAD: DUDAS DE PAGO (ANTES DE IA)
 if (
