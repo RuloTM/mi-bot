@@ -442,23 +442,90 @@
           <h3 style="margin:0;">Catálogo del negocio</h3>
         </div>
 
-        <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
-          <form id="productForm" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        
+
+
+
+
+
+
+
+<form id="productForm" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+
   <input id="editingProductId" type="hidden" />
 
-  <input id="productName" type="text" placeholder="Nombre del producto"
-    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:200px;" required />
+  <input
+    id="productName"
+    type="text"
+    placeholder="Nombre del producto"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+    required
+  />
 
-  <input id="productPrice" type="number" step="0.01" placeholder="Precio"
-    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:120px;" required />
+  <input
+    id="productPrice"
+    type="number"
+    step="0.01"
+    placeholder="Precio"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+    required
+  />
 
-  <input id="productImage" type="text" placeholder="URL imagen"
-    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-width:240px;" />
+  <input
+    id="productStock"
+    type="number"
+    placeholder="Stock"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+  />
 
-  <button id="saveProductBtn" type="submit" class="btn-paid">Guardar producto</button>
-  <button id="cancelEditBtn" type="button" class="btn-shipped" style="display:none;">Cancelar</button>
+  <input
+    id="productCategory"
+    type="text"
+    placeholder="Categoría"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+  />
 
-          </form>
+  <input
+    id="productSku"
+    type="text"
+    placeholder="SKU"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+  />
+
+  <input
+    id="productImage"
+    type="text"
+    placeholder="URL imagen"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px;"
+  />
+
+  <textarea
+    id="productDescription"
+    placeholder="Descripción"
+    style="padding:10px; border:1px solid #d1d5db; border-radius:10px; min-height:90px; grid-column:1/-1;"
+  ></textarea>
+
+  <label style="display:flex; align-items:center; gap:8px;">
+    <input id="productActive" type="checkbox" checked />
+    Producto activo
+  </label>
+
+  <div style="display:flex; gap:12px; grid-column:1/-1;">
+    <button id="saveProductBtn" type="submit" class="btn-paid">
+      Guardar producto
+    </button>
+
+    <button
+      id="cancelEditBtn"
+      type="button"
+      class="btn-shipped"
+      style="display:none;"
+    >
+      Cancelar
+    </button>
+  </div>
+
+</form>
         </div>
 
         <table>
@@ -1008,18 +1075,13 @@ products.forEach(product => {
   }
 }
 
-async function createProduct(name, price, image_url) {
+async function createProduct(product) {
   const res = await authFetch("/products", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      name,
-      price,
-      image_url,
-      active: true
-    })
+    body: JSON.stringify(product)
   });
 
   if (!res.ok) {
@@ -1029,18 +1091,33 @@ async function createProduct(name, price, image_url) {
 
   return res.json();
 }
-async function updateProduct(productId, name, price, image_url) {
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "No se pudo crear el producto");
+  }
+
+  return res.json();
+}
+
+async function updateProduct(productId, product) {
   const res = await authFetch(`/products/${productId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      name,
-      price,
-      image_url
-    })
+    body: JSON.stringify(product)
   });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "No se pudo actualizar el producto");
+  }
+
+  return res.json();
+}
+
+
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
@@ -1090,28 +1167,59 @@ window.toggleProduct = async function toggleProduct(productId) {
 const productForm = document.getElementById("productForm");
 
 if (productForm) {
-  productForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
 
-    const productId = document.getElementById("editingProductId").value;
-    const name = document.getElementById("productName").value.trim();
-    const price = document.getElementById("productPrice").value;
-    const imageUrl = document.getElementById("productImage").value.trim();
+productForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    try {
-      if (productId) {
-        await updateProduct(productId, name, price, imageUrl);
-      } else {
-        await createProduct(name, price, imageUrl);
-      }
+  const productId = document.getElementById("editingProductId").value;
 
-      resetProductForm();
-      await loadProducts();
-    } catch (error) {
-      console.error("Error guardando producto:", error);
-      alert(error.message || "Error guardando producto");
+  const product = {
+    name: document.getElementById("productName").value.trim(),
+
+    price: Number(
+      document.getElementById("productPrice").value || 0
+    ),
+
+    stock: Number(
+      document.getElementById("productStock").value || 0
+    ),
+
+    category: document.getElementById("productCategory").value.trim(),
+
+    sku: document.getElementById("productSku").value.trim(),
+
+    image_url: document.getElementById("productImage").value.trim(),
+
+    description: document.getElementById("productDescription").value.trim(),
+
+    active: document.getElementById("productActive").checked
+  };
+
+  try {
+
+    if (productId) {
+
+      await updateProduct(productId, product);
+
+    } else {
+
+      await createProduct(product);
+
     }
-  });
+
+    resetProductForm();
+
+    await loadProducts();
+
+  } catch (error) {
+
+    console.error("Error guardando producto:", error);
+
+    alert(error.message || "Error guardando producto");
+
+  }
+});
+
 }
     initPanel();
 </script>

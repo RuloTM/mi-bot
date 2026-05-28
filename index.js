@@ -2070,7 +2070,16 @@ app.get("/products", requireAuth, async (req, res) => {
 
 app.post("/products", requireAuth, async (req, res) => {
   try {
-    const { name, price, image_url, active } = req.body;
+    const {
+      name,
+      price,
+      image_url,
+      active,
+      description,
+      stock,
+      category,
+      sku
+    } = req.body;
 
     if (!name || price === undefined || price === null) {
       return res.status(400).json({ error: "Nombre y precio son obligatorios" });
@@ -2083,7 +2092,11 @@ app.post("/products", requireAuth, async (req, res) => {
         name: String(name).trim(),
         price: Number(price),
         image_url: image_url || null,
-        active: active === undefined ? true : !!active
+        active: active === undefined ? true : !!active,
+        description: description || null,
+        stock: Number(stock || 0),
+        category: category || null,
+        sku: sku || null
       })
       .select()
       .single();
@@ -2102,7 +2115,17 @@ app.post("/products", requireAuth, async (req, res) => {
 app.put("/products/:id", requireAuth, async (req, res) => {
   try {
     const productId = req.params.id;
-    const { name, price, active, image_url } = req.body;
+
+    const {
+      name,
+      price,
+      active,
+      image_url,
+      description,
+      stock,
+      category,
+      sku
+    } = req.body;
 
     const { data: existing, error: existingError } = await supabase
       .from("products")
@@ -2118,11 +2141,25 @@ app.put("/products/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "No tienes acceso a este producto" });
     }
 
-    const payload = {};
+    const payload = {
+      updated_at: new Date().toISOString()
+    };
+
     if (name !== undefined) payload.name = String(name).trim();
+
     if (price !== undefined) payload.price = Number(price);
+
     if (active !== undefined) payload.active = !!active;
+
     if (image_url !== undefined) payload.image_url = image_url;
+
+    if (description !== undefined) payload.description = description;
+
+    if (stock !== undefined) payload.stock = Number(stock || 0);
+
+    if (category !== undefined) payload.category = category;
+
+    if (sku !== undefined) payload.sku = sku;
 
     const { data, error } = await supabase
       .from("products")
@@ -2137,9 +2174,13 @@ app.put("/products/:id", requireAuth, async (req, res) => {
     }
 
     res.json(data);
+
   } catch (err) {
+
     console.error(err);
+
     res.status(500).json({ error: "Error actualizando producto" });
+
   }
 });
 
