@@ -1210,13 +1210,33 @@ card.onmouseleave = () => {
     </div>
 
     <div style="display:flex; gap:10px; margin-top:auto;">
-      <button class="btn-paid" style="flex:1;" onclick='editProduct(${JSON.stringify(product)})'>
-        Editar
-      </button>
+      <button
+  class="btn-paid"
+  style="flex:1;"
+  onclick='editProduct(${JSON.stringify(product)})'
+>
+  Editar
+</button>
 
-      <button class="btn-shipped" style="flex:1;" onclick="toggleProduct('${product.id}')">
-        ${product.active ? "Desactivar" : "Activar"}
-      </button>
+<button
+  class="btn-shipped"
+  style="flex:1;"
+  onclick="removeProductImage('${product.id}')"
+>
+  Eliminar imagen
+</button>
+
+<button
+  class="btn-shipped"
+  style="flex:1;"
+  onclick="toggleProduct('${product.id}')"
+>
+  ${product.active ? "Desactivar" : "Activar"}
+</button> 
+
+
+
+
     </div>
   `;
 
@@ -1375,6 +1395,22 @@ if (productImageFile) {
     }
   });
 }
+
+window.removeProductImage = async function removeProductImage(productId) {
+  if (!confirm("¿Eliminar la imagen de este producto?")) return;
+
+  try {
+    await updateProduct(productId, {
+      image_url: ""
+    });
+
+    await loadProducts();
+
+  } catch (error) {
+    console.error("Error eliminando imagen:", error);
+    alert(error.message || "Error eliminando imagen");
+  }
+};
 
 window.toggleProduct = async function toggleProduct(productId) {
   try {
