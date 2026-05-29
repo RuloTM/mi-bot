@@ -486,7 +486,13 @@ if (wantsOptions) {
       product.sku
     ].filter(Boolean).join(" "));
 
-    return queryWords.some(word => searchable.includes(word));
+    const hasNumber = queryWords.some(w => /^\d+$/.test(w));
+
+if (hasNumber) {
+  return queryWords.every(word => searchable.includes(word));
+}
+
+return queryWords.some(word => searchable.includes(word));
   });
 
   const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
