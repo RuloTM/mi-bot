@@ -540,6 +540,14 @@ return queryWords.some(word => searchable.includes(word));
     "Estas opciones tengo disponibles 👇"
   );
 
+console.log(
+  "📦 OPCIONES ENCONTRADAS:",
+  disponibles.map(p => ({
+    name: p.name,
+    stock: p.stock
+  }))
+);
+
   for (const producto of disponibles.slice(0, 5)) {
     if (producto.image_url) {
       await enviarImagenWhatsApp(from, producto, business);
