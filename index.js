@@ -1139,7 +1139,7 @@ async function getProductPrice(businessId, productName) {
 async function getBusinessProducts(businessId) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, image_url, active, stock")
+    .select("id, name, price, image_url, active, stock, description, category, sku")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("created_at", { ascending: false });
@@ -1228,62 +1228,62 @@ function normalizeText(text) {
     .trim();
 }
 
-// NUEVO: detectar producto en el texto del cliente con score
 function findProductFromText(products, text) {
-  const t = normalizeText(text);
+  const query = normalizeText(text);
+
+  if (!query) return null;
 
   let bestProduct = null;
   let bestScore = 0;
 
+  const queryWords = query
+    .split(" ")
+    .filter(word => word.length > 2);
+
   for (const product of products) {
     const productName = normalizeText(product.name);
 
-    if (!productName) continue;
+    const searchableText = normalizeText([
+      product.name,
+      product.description,
+      product.category,
+      product.sku
+    ].filter(Boolean).join(" "));
 
-    // Coincidencia exacta del nombre completo
-    if (t.includes(productName)) {
-      return product;
-    }
-
-    const words = productName
-      .split(" ")
-      .filter(word => word.length > 2);
+    if (!searchableText) continue;
 
     let score = 0;
 
-    for (const word of words) {
-      if (t.includes(word)) {
-        score += 1;
-      }
+    if (productName && query.includes(productName)) {
+      score += 100;
     }
 
-    // Bonus fuerte si coincide modelo tipo iphone 13, iphone 12, samsung s23, etc.
-    const modelMatches = productName.match(/(iphone|samsung|xiaomi|motorola)\s*\w+/g) || [];
+    const productWords = searchableText
+      .split(" ")
+      .filter(word => word.length > 2);
 
-    for (const model of modelMatches) {
-      if (t.includes(model)) {
-        score += 5;
-      }
-    }
-
-    // Bonus por color
-    const colors = [
-      "negra",
-      "negro",
-      "blanca",
-      "blanco",
-      "azul",
-      "roja",
-      "rojo",
-      "rosa",
-      "transparente"
-    ];
-
-    for (const color of colors) {
-      if (productName.includes(color) && t.includes(color)) {
+    for (const word of queryWords) {
+      if (productWords.includes(word)) {
+        score += 10;
+      } else if (searchableText.includes(word)) {
         score += 3;
       }
     }
+
+    // penaliza productos genéricos si el cliente escribió más detalles
+    const missingImportantWords = queryWords.filter(word =>
+      !["quiero", "busco", "tienes", "tiene", "para", "una", "uno"].includes(word) &&
+      !productWords.includes(word)
+    );
+
+    score -= missingImportantWords.length * 12;
+
+    console.log("🔎 MATCH SCORE:", {
+      producto: product.name,
+      score,
+      query,
+      missingImportantWords
+    });
 
     if (score > bestScore) {
       bestScore = score;
@@ -1291,14 +1291,12 @@ function findProductFromText(products, text) {
     }
   }
 
-  // Exigir score mínimo para evitar falsas detecciones
-  if (bestScore >= 4) {
+  if (bestScore >= 12) {
     return bestProduct;
   }
 
   return null;
 }
-
 
 async function saveOrder(businessId, customerId, perfil, business) {
   console.log("📦 Intentando guardar pedido con perfil:", perfil);
