@@ -587,7 +587,7 @@ if (state.etapa === "pidiendo_direccion") {
 
   const resumenMessage = `Perfecto 🙌 Te resumo tu pedido:
 
-• Producto: ${state.perfil.producto || state.productoSeleccionado?.name || "Producto"}
+• Producto: ${state.productoSeleccionado?.name || state.perfil.producto || "Producto"}
 • Nombre: ${state.perfil.nombre || ""}
 • Ciudad: ${state.perfil.ciudad || ""}
 • Pago: ${state.perfil.pago || ""}
@@ -1218,33 +1218,87 @@ async function descontarStockProducto(productId, cantidad) {
   }
 }
 
+function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-// NUEVO: detectar producto en el texto del cliente
+// NUEVO: detectar producto en el texto del cliente con score
 function findProductFromText(products, text) {
-  const t = text.toLowerCase();
+  const t = normalizeText(text);
+
+  let bestProduct = null;
+  let bestScore = 0;
 
   for (const product of products) {
-    const productName = String(product.name || "").toLowerCase();
+    const productName = normalizeText(product.name);
 
     if (!productName) continue;
 
+    // Coincidencia exacta del nombre completo
     if (t.includes(productName)) {
       return product;
     }
 
-    const words = productName.split(" ").filter(Boolean);
+    const words = productName
+      .split(" ")
+      .filter(word => word.length > 2);
 
-    const matches = words.filter(word =>
-      word.length > 2 && t.includes(word)
-    );
+    let score = 0;
 
-    if (matches.length >= Math.min(2, words.length)) {
-      return product;
+    for (const word of words) {
+      if (t.includes(word)) {
+        score += 1;
+      }
     }
+
+    // Bonus fuerte si coincide modelo tipo iphone 13, iphone 12, samsung s23, etc.
+    const modelMatches = productName.match(/(iphone|samsung|xiaomi|motorola)\s*\w+/g) || [];
+
+    for (const model of modelMatches) {
+      if (t.includes(model)) {
+        score += 5;
+      }
+    }
+
+    // Bonus por color
+    const colors = [
+      "negra",
+      "negro",
+      "blanca",
+      "blanco",
+      "azul",
+      "roja",
+      "rojo",
+      "rosa",
+      "transparente"
+    ];
+
+    for (const color of colors) {
+      if (productName.includes(color) && t.includes(color)) {
+        score += 3;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestProduct = product;
+    }
+  }
+
+  // Exigir score mínimo para evitar falsas detecciones
+  if (bestScore >= 4) {
+    return bestProduct;
   }
 
   return null;
 }
+
 
 async function saveOrder(businessId, customerId, perfil, business) {
   console.log("📦 Intentando guardar pedido con perfil:", perfil);
