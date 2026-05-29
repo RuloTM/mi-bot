@@ -459,10 +459,21 @@ if (
   console.log("🧹 Estado reiniciado para nueva compra");
 }
 
-
 // 🔥 Detectar producto automáticamente desde texto
 const productosDetectables = await getBusinessProducts(business.id);
-const productoDetectado = findProductFromText(productosDetectables, text);
+
+let productoDetectado =
+  findProductFromText(productosDetectables, text);
+
+if (!productoDetectado) {
+  console.log("🤖 Buscando producto con IA...");
+
+  productoDetectado =
+    await findProductWithAI(
+      productosDetectables,
+      text
+    );
+}
 
 if (productoDetectado) {
 
@@ -1296,6 +1307,61 @@ function findProductFromText(products, text) {
   }
 
   return null;
+}
+
+async function findProductWithAI(products, text) {
+  try {
+
+    const catalog = products.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      stock: p.stock
+    }));
+
+    const prompt = `
+Cliente escribió:
+"${text}"
+
+Catálogo:
+${JSON.stringify(catalog, null, 2)}
+
+Devuelve únicamente el ID del producto que más probablemente busca el cliente.
+
+Si no hay coincidencia clara devuelve:
+NO_MATCH
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un buscador de productos."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0
+    });
+
+    const result =
+      response.choices?.[0]?.message?.content?.trim();
+
+    console.log("🤖 AI PRODUCT MATCH:", result);
+
+    if (!result || result === "NO_MATCH") {
+      return null;
+    }
+
+    return products.find(p => p.id === result) || null;
+
+  } catch (err) {
+    console.error("❌ Error AI match:", err);
+    return null;
+  }
 }
 
 async function saveOrder(businessId, customerId, perfil, business) {
