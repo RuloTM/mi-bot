@@ -465,7 +465,23 @@ const productosDetectables = await getBusinessProducts(business.id);
 const productoDetectado = findProductFromText(productosDetectables, text);
 
 if (productoDetectado) {
-  console.log("🧠 Producto detectado:", productoDetectado.name);	
+
+  if (Number(productoDetectado.stock || 0) <= 0) {
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `😕 Lo siento, *${productoDetectado.name}* está agotado por el momento.
+
+¿Quieres ver otras opciones disponibles?`
+    );
+
+    return res.sendStatus(200);
+  }
+
+  console.log("🧠 Producto detectado:", productoDetectado.name);
 
   state.productoSeleccionado = productoDetectado;
   state.perfil.producto = productoDetectado.name;
@@ -1123,7 +1139,7 @@ async function getProductPrice(businessId, productName) {
 async function getBusinessProducts(businessId) {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, price, image_url, active")
+    .select("id, name, price, image_url, active, stock")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("created_at", { ascending: false });
