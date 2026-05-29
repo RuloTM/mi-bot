@@ -465,10 +465,11 @@ const productosDetectables = await getBusinessProducts(business.id);
 const productoDetectado = findProductFromText(productosDetectables, text);
 
 if (productoDetectado) {
-  console.log("🧠 Producto detectado:", productoDetectado.name);
+  console.log("🧠 Producto detectado:", productoDetectado.name);	
 
   state.productoSeleccionado = productoDetectado;
   state.perfil.producto = productoDetectado.name;
+  state.perfil.product_id = productoDetectado.id;
 }
 
 // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
@@ -724,6 +725,34 @@ if (textLower === "confirmo") {
   }
 
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
+
+const cantidadPedido = Number(state.perfil.cantidad || 1);
+
+const productId =
+  state.productoSeleccionado?.id ||
+  state.perfil.product_id ||
+  orderSaved.product_id ||
+  orderSaved.productId;
+
+if (productId) {
+  const stockResult = await descontarStockProducto(
+    productId,
+    cantidadPedido
+  );
+
+  if (!stockResult.ok) {
+    console.log("⚠️ No se pudo descontar stock:", stockResult.error);
+  } else {
+    console.log("📦 STOCK ACTUALIZADO:", {
+      producto: productId,
+      cantidad: cantidadPedido,
+      anterior: stockResult.stockAnterior,
+      nuevo: stockResult.stockNuevo
+    });
+  }
+} else {
+  console.log("⚠️ No se encontró productId para descontar stock");
+}
 
   console.log("💳 CONFIG PAGO:", {
   payment_enabled: business.payment_enabled,
@@ -1090,6 +1119,7 @@ async function getProductPrice(businessId, productName) {
 
 
 // NUEVO: obtener catálogo completo
+
 async function getBusinessProducts(businessId) {
   const { data, error } = await supabase
     .from("products")
@@ -1119,7 +1149,58 @@ function buildCatalogMessage(products) {
   return `Estos son nuestros productos disponibles:\n\n${lines.join("\n")}\n\nEscríbeme cuál te interesa y te ayudo con tu pedido.`;
 }
 
+async function descontarStockProducto(productId, cantidad) {
+  try {
+    const qty = Number(cantidad || 1);
 
+    if (!productId || qty <= 0) {
+      return { ok: false, error: "Producto o cantidad inválida" };
+    }
+
+    const { data: product, error: getError } = await supabase
+      .from("products")
+      .select("id, stock")
+      .eq("id", productId)
+      .single();
+
+    if (getError || !product) {
+      return { ok: false, error: "Producto no encontrado" };
+    }
+
+    const stockActual = Number(product.stock || 0);
+
+    if (stockActual < qty) {
+      return {
+        ok: false,
+        error: `Stock insuficiente. Disponible: ${stockActual}`
+      };
+    }
+
+    const nuevoStock = stockActual - qty;
+
+    const { error: updateError } = await supabase
+      .from("products")
+      .update({
+        stock: nuevoStock,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", productId);
+
+    if (updateError) {
+      return { ok: false, error: updateError.message };
+    }
+
+    return {
+      ok: true,
+      stockAnterior: stockActual,
+      stockNuevo: nuevoStock
+    };
+
+  } catch (error) {
+    console.error("❌ Error descontando stock:", error);
+    return { ok: false, error: "Error descontando stock" };
+  }
+}
 
 
 // NUEVO: detectar producto en el texto del cliente
