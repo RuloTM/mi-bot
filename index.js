@@ -386,6 +386,30 @@ if (!business.active) {
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
 
+if (
+  textLower === "reset" ||
+  textLower === "reiniciar" ||
+  textLower === "cancelar" ||
+  textLower === "empezar de nuevo"
+) {
+  await clearCustomerState(business.id, customer.id);
+
+  await replyAndPersist(
+    business,
+    customer,
+    {
+      etapa: null,
+      perfil: {},
+      carrito: [],
+      productoSeleccionado: null
+    },
+    from,
+    "Listo 🔄 reinicié la conversación. ¿Qué producto buscas?"
+  );
+
+  return res.sendStatus(200);
+}
+
 // 💳 PRIORIDAD: DUDAS DE PAGO (ANTES DE IA)
 if (
   !state.etapa &&
