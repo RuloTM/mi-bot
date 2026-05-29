@@ -498,9 +498,9 @@ if (wantsOptions) {
   const queryWords = normalizeText(text)
     .split(" ")
     .filter(w =>
-      w.length > 2 &&
-      !["que", "qué", "tienes", "para", "opciones", "muestrame", "muéstrame"].includes(w)
-    );
+  (w.length > 2 || /^\d+$/.test(w)) &&
+  !["que", "qué", "tienes", "para", "opciones", "muestrame", "muéstrame"].includes(w)
+);
 
   const matches = products.filter(product => {
     const searchable = normalizeText([
