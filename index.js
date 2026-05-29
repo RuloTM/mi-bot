@@ -576,19 +576,34 @@ if (!productoDetectado) {
 if (productoDetectado) {
 
   if (Number(productoDetectado.stock || 0) <= 0) {
+  const alternativas = findAlternativeProducts(
+    productosDetectables,
+    productoDetectado,
+    3
+  );
 
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      `😕 Lo siento, *${productoDetectado.name}* está agotado por el momento.
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `😕 Lo siento, *${productoDetectado.name}* está agotado por el momento.${alternativas.length ? "\n\nPero tengo estas alternativas disponibles 👇" : "\n\n¿Quieres ver otras opciones disponibles?"}`
+  );
 
-¿Quieres ver otras opciones disponibles?`
-    );
-
-    return res.sendStatus(200);
+  for (const alt of alternativas) {
+    if (alt.image_url) {
+      await enviarImagenWhatsApp(from, alt, business);
+    } else {
+      await enviarWhatsApp(
+        from,
+        `${alt.name} — $${Number(alt.price || 0).toFixed(2)} MXN`,
+        business
+      );
+    }
   }
+
+  return res.sendStatus(200);
+}
 
   console.log("🧠 Producto detectado:", productoDetectado.name);
 
@@ -1405,6 +1420,54 @@ function findProductFromText(products, text) {
   }
 
   return null;
+}
+
+function findAlternativeProducts(products, unavailableProduct, limit = 3) {
+  if (!unavailableProduct) return [];
+
+  const unavailableText = normalizeText([
+    unavailableProduct.name,
+    unavailableProduct.description,
+    unavailableProduct.category,
+    unavailableProduct.sku
+  ].filter(Boolean).join(" "));
+
+  const unavailableWords = unavailableText
+    .split(" ")
+    .filter(word => word.length > 2 || /^\d+$/.test(word));
+
+  const alternatives = products
+    .filter(product =>
+      product.id !== unavailableProduct.id &&
+      Number(product.stock || 0) > 0
+    )
+    .map(product => {
+      const productText = normalizeText([
+        product.name,
+        product.description,
+        product.category,
+        product.sku
+      ].filter(Boolean).join(" "));
+
+      let score = 0;
+
+      for (const word of unavailableWords) {
+        if (productText.includes(word)) {
+          score += 1;
+        }
+      }
+
+      return {
+        product,
+        score
+      };
+    })
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(item => item.product);
+
+  return alternatives;
 }
 
 async function findProductWithAI(products, text) {
