@@ -459,6 +459,74 @@ if (
   console.log("🧹 Estado reiniciado para nueva compra");
 }
 
+const wantsOptions =
+  textLower.includes("opciones") ||
+  textLower.includes("que opciones") ||
+  textLower.includes("qué opciones") ||
+  textLower.includes("que tienes para") ||
+  textLower.includes("qué tienes para") ||
+  textLower.includes("muestrame") ||
+  textLower.includes("muéstrame");
+
+if (wantsOptions) {
+  const products = await getBusinessProducts(business.id);
+
+  const queryWords = normalizeText(text)
+    .split(" ")
+    .filter(w =>
+      w.length > 2 &&
+      !["que", "qué", "tienes", "para", "opciones", "muestrame", "muéstrame"].includes(w)
+    );
+
+  const matches = products.filter(product => {
+    const searchable = normalizeText([
+      product.name,
+      product.description,
+      product.category,
+      product.sku
+    ].filter(Boolean).join(" "));
+
+    return queryWords.some(word => searchable.includes(word));
+  });
+
+  const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
+
+  if (!disponibles.length) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Por ahora no encontré opciones disponibles con esa búsqueda 😕 ¿Quieres ver todo el catálogo?"
+    );
+    return res.sendStatus(200);
+  }
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "Estas opciones tengo disponibles 👇"
+  );
+
+  for (const producto of disponibles.slice(0, 5)) {
+    if (producto.image_url) {
+      await enviarImagenWhatsApp(from, producto, business);
+    } else {
+      await enviarWhatsApp(
+        from,
+        `${producto.name} — $${Number(producto.price || 0).toFixed(2)} MXN`
+        ,
+        business
+      );
+    }
+  }
+
+  return res.sendStatus(200);
+}
+
+
 // 🔥 Detectar producto automáticamente desde texto
 const productosDetectables = await getBusinessProducts(business.id);
 
