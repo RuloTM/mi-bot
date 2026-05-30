@@ -6,6 +6,7 @@ const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 const axios = require("axios");
+const sharp = require("sharp");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 const supabaseAdmin = createClient(
@@ -532,34 +533,54 @@ return queryWords.some(word => searchable.includes(word));
     return res.sendStatus(200);
   }
 
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    "Estas opciones tengo disponibles 👇"
-  );
-
-console.log(
-  "📦 OPCIONES ENCONTRADAS:",
-  disponibles.map(p => ({
-    name: p.name,
-    stock: p.stock
-  }))
+  
+await replyAndPersist(
+  business,
+  customer,
+  state,
+  from,
+  "Estas opciones tengo disponibles 👇"
 );
 
-  for (const producto of disponibles.slice(0, 5)) {
+const catalogoUrl =
+  await generarImagenCatalogo(
+    disponibles.slice(0, 3)
+  );
+
+if (catalogoUrl) {
+
+  await axios.post(
+    `https://graph.facebook.com/v23.0/${business.phone_number_id}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to: from,
+      type: "image",
+      image: {
+        link: catalogoUrl,
+        caption: "📱 Opciones disponibles"
+      }
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${business.token}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+} else {
+
+  for (const producto of disponibles.slice(0, 3)) {
+
     if (producto.image_url) {
-      await enviarImagenWhatsApp(from, producto, business);
-    } else {
-      await enviarWhatsApp(
+      await enviarImagenWhatsApp(
         from,
-        `${producto.name} — $${Number(producto.price || 0).toFixed(2)} MXN`
-        ,
+        producto,
         business
       );
     }
   }
+}
 
   return res.sendStatus(200);
 }
@@ -1476,6 +1497,120 @@ function findAlternativeProducts(products, unavailableProduct, limit = 3) {
     .map(item => item.product);
 
   return alternatives;
+}
+
+async function generarImagenCatalogo(productos) {
+  try {
+    const items = productos.slice(0, 3);
+
+    const width = 1200;
+    const height = 520;
+    const cardWidth = 360;
+    const cardHeight = 440;
+    const gap = 30;
+    const startX = 45;
+    const startY = 40;
+
+    const composites = [];
+
+    const baseSvg = `
+      <svg width="${width}" height="${height}">
+        <rect width="100%" height="100%" fill="#f3f4f6"/>
+        <text x="45" y="34" font-size="24" font-family="Arial" font-weight="700" fill="#111827">
+          Opciones disponibles
+        </text>
+      </svg>
+    `;
+
+    const base = await sharp(Buffer.from(baseSvg)).png().toBuffer();
+
+    for (let i = 0; i < items.length; i++) {
+      const product = items[i];
+      const x = startX + i * (cardWidth + gap);
+      const y = startY;
+
+      let imageBuffer = null;
+
+      if (product.image_url) {
+        try {
+          const imgRes = await axios.get(product.image_url, {
+            responseType: "arraybuffer"
+          });
+
+          imageBuffer = await sharp(Buffer.from(imgRes.data))
+            .resize(320, 260, {
+              fit: "cover"
+            })
+            .png()
+            .toBuffer();
+
+        } catch (err) {
+          console.log("⚠️ No se pudo cargar imagen:", product.name);
+        }
+      }
+
+      const cardSvg = `
+        <svg width="${cardWidth}" height="${cardHeight}">
+          <rect x="0" y="0" width="${cardWidth}" height="${cardHeight}" rx="24" fill="white"/>
+          <rect x="20" y="20" width="320" height="260" rx="18" fill="#e5e7eb"/>
+          <text x="20" y="330" font-size="22" font-family="Arial" font-weight="700" fill="#111827">
+            ${String(product.name || "").slice(0, 28)}
+          </text>
+          <text x="20" y="372" font-size="30" font-family="Arial" font-weight="800" fill="#111827">
+            $${Number(product.price || 0).toFixed(2)} MXN
+          </text>
+          <text x="20" y="410" font-size="18" font-family="Arial" fill="#16a34a">
+            Stock: ${Number(product.stock || 0)}
+          </text>
+        </svg>
+      `;
+
+      composites.push({
+        input: Buffer.from(cardSvg),
+        left: x,
+        top: y
+      });
+
+      if (imageBuffer) {
+        composites.push({
+          input: imageBuffer,
+          left: x + 20,
+          top: y + 20
+        });
+      }
+    }
+
+    const finalBuffer = await sharp(base)
+      .composite(composites)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    const fileName = `catalogos/catalogo-${Date.now()}.jpg`;
+
+    const { error } = await supabaseAdmin.storage
+      .from("product-images")
+      .upload(fileName, finalBuffer, {
+        contentType: "image/jpeg",
+        upsert: true
+      });
+
+    if (error) {
+      console.error("❌ Error subiendo catálogo:", error);
+      return null;
+    }
+
+    const { data } = supabaseAdmin.storage
+      .from("product-images")
+      .getPublicUrl(fileName);
+
+    console.log("✅ Catálogo generado:", data.publicUrl);
+
+    return data.publicUrl;
+
+  } catch (error) {
+    console.error("❌ Error generando imagen catálogo:", error);
+    return null;
+  }
 }
 
 async function findProductWithAI(products, text) {
