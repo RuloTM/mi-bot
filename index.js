@@ -531,6 +531,89 @@ if (
   console.log("🧹 Estado reiniciado para nueva compra");
 }
 
+const wantsCatalog =
+  textLower.includes("catalogo") ||
+  textLower.includes("catálogo") ||
+  textLower.includes("productos") ||
+  textLower.includes("que vendes") ||
+  textLower.includes("qué vendes") ||
+  textLower.includes("que manejas") ||
+  textLower.includes("qué manejas") ||
+  textLower.includes("que tienes") ||
+  textLower.includes("qué tienes") ||
+  textLower.includes("muestrame todo") ||
+  textLower.includes("muéstrame todo");
+
+if (wantsCatalog && !wantsOptions) {
+  const products = await getBusinessProducts(business.id);
+  const disponibles = products.filter(p => Number(p.stock || 0) > 0);
+
+  if (!disponibles.length) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Por ahora no tengo productos disponibles 😕"
+    );
+    return res.sendStatus(200);
+  }
+
+  state.catalogoActual = disponibles.slice(0, 3);
+  await saveCustomerState(business.id, customer.id, state);
+
+  const opcionesTexto = disponibles
+    .slice(0, 3)
+    .map((p, i) => `${i + 1}️⃣ ${p.name}`)
+    .join("\n");
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `📱 Este es nuestro catálogo disponible
+
+Responde con:
+
+${opcionesTexto}
+
+✍️ También puedes escribir el nombre del producto.`
+  );
+
+  const catalogoUrl = await generarImagenCatalogo(disponibles.slice(0, 3));
+
+  if (catalogoUrl) {
+    await axios.post(
+      `https://graph.facebook.com/v23.0/${business.phone_number_id}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: from,
+        type: "image",
+        image: {
+          link: catalogoUrl,
+          caption: "📱 Catálogo disponible"
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${business.access_token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  } else {
+    for (const producto of disponibles.slice(0, 3)) {
+      if (producto.image_url) {
+        await enviarImagenWhatsApp(from, producto, business);
+      }
+    }
+  }
+
+  return res.sendStatus(200);
+}
+
+
 const wantsOptions =
   textLower.includes("opciones") ||
   textLower.includes("que opciones") ||
