@@ -386,6 +386,101 @@ if (!business.active) {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
+// 📂 Selección de categoría
+if (
+  state.etapa === "seleccionando_categoria" &&
+  state.categoriasActuales &&
+  ["1","2","3","4","5","6","7","8","9"].includes(text.trim())
+) {
+
+  const index = Number(text.trim()) - 1;
+
+  const categoria =
+    state.categoriasActuales[index];
+
+  if (categoria) {
+
+    console.log(
+      "📂 Categoría seleccionada:",
+      categoria
+    );
+
+    const products =
+      await getBusinessProducts(business.id);
+
+    const disponibles = products.filter(
+      p =>
+        Number(p.stock || 0) > 0 &&
+        normalizeText(
+          p.category || "general"
+        ) === categoria
+    );
+
+    state.catalogoActual =
+      disponibles.slice(0, 3);
+
+    state.etapa = null;
+
+    await saveCustomerState(
+      business.id,
+      customer.id,
+      state
+    );
+
+    const opcionesTexto =
+      state.catalogoActual
+        .map(
+          (p, i) =>
+            `${i + 1}️⃣ ${p.name}`
+        )
+        .join("\n");
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `📱 Categoría: ${categoria}
+
+${opcionesTexto}
+
+Responde con el número del producto.`
+    );
+
+    const catalogoUrl =
+      await generarImagenCatalogo(
+        state.catalogoActual
+      );
+
+    if (catalogoUrl) {
+
+      await axios.post(
+        `https://graph.facebook.com/v23.0/${business.phone_number_id}/messages`,
+        {
+          messaging_product: "whatsapp",
+          to: from,
+          type: "image",
+          image: {
+            link: catalogoUrl,
+            caption: `📱 ${categoria}`
+          }
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${business.access_token}`,
+            "Content-Type":
+              "application/json"
+          }
+        }
+      );
+    }
+
+    return res.sendStatus(200);
+  }
+}
+
+
 // 🔢 Selección directa desde catálogo
 if (
   state.catalogoActual &&
@@ -568,6 +663,39 @@ if (wantsCatalog && !wantsOptions) {
     );
     return res.sendStatus(200);
   }
+
+  const categorias = [
+    ...new Set(
+      disponibles.map(p =>
+        normalizeText(p.category || "general")
+      )
+    )
+  ].filter(Boolean);
+
+  state.categoriasActuales = categorias;
+  state.catalogoActual = [];
+  state.etapa = "seleccionando_categoria";
+
+  await saveCustomerState(business.id, customer.id, state);
+
+  const categoriasTexto = categorias
+    .map((cat, i) => `${i + 1}️⃣ ${cat}`)
+    .join("\n");
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `📂 Estas son nuestras categorías disponibles:
+
+${categoriasTexto}
+
+Responde con el número de la categoría que quieres ver.`
+  );
+
+  return res.sendStatus(200);
+}
 
   state.catalogoActual = disponibles.slice(0, 3);
   await saveCustomerState(business.id, customer.id, state);
@@ -1285,7 +1413,9 @@ async function getCustomerState(businessId, customerId) {
     etapa: null,
     perfil: {},
     productoSeleccionado: null,
-    catalogoActual: []
+    catalogoActual: [],
+    categoriasActuales: []
+
   };
 }
 
@@ -1293,7 +1423,8 @@ async function getCustomerState(businessId, customerId) {
     etapa: data.etapa || null,
     perfil: data.perfil || {},
     productoSeleccionado: data.producto_seleccionado || null,
-    catalogoActual: data.catalogo_actual || []
+    catalogoActual: data.catalogo_actual || [],
+    categoriasActuales: data.categorias_actuales || []
   };
 }
 
@@ -1307,6 +1438,7 @@ async function saveCustomerState(businessId, customerId, state) {
     perfil: state.perfil || {},
     producto_seleccionado: state.productoSeleccionado || null,
     catalogo_actual: state.catalogoActual || [],
+    categorias_actuales: state.categoriasActuales || [],
     updated_at: new Date().toISOString()
   };
 
