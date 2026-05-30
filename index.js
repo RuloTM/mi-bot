@@ -386,6 +386,53 @@ if (!business.active) {
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
+// 🔢 Selección directa desde catálogo
+if (
+  state.catalogoActual &&
+  Array.isArray(state.catalogoActual) &&
+  ["1", "2", "3"].includes(text.trim())
+) {
+
+  const index = Number(text.trim()) - 1;
+
+  const producto =
+    state.catalogoActual[index];
+
+  if (producto) {
+
+    console.log(
+      "🎯 Producto seleccionado por número:",
+      producto.name
+    );
+
+    state.productoSeleccionado = producto;
+    state.perfil.producto = producto.name;
+    state.perfil.product_id = producto.id;
+
+    state.etapa = "pidiendo_nombre";
+
+    await saveCustomerState(
+      business.id,
+      customer.id,
+      state
+    );
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `Excelente elección 🙌
+
+📱 ${producto.name}
+💰 $${Number(producto.price || 0).toFixed(2)} MXN
+
+Por favor escribe tu nombre completo.`
+    );
+
+    return res.sendStatus(200);
+  }
+}
 
 if (
   textLower === "reset" ||
@@ -521,6 +568,8 @@ return queryWords.some(word => searchable.includes(word));
   });
 
   const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
+  state.catalogoActual = disponibles.slice(0, 3);
+  await saveCustomerState(business.id, customer.id, state);
 
   if (!disponibles.length) {
     await replyAndPersist(
