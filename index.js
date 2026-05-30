@@ -599,7 +599,7 @@ await replyAndPersist(
   customer,
   state,
   from,
-  `Estas opciones tengo disponibles 👇
+  `📱 Encontré estas opciones para tu búsqueda
 
 Responde con:
 
