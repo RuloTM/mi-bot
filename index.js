@@ -1588,7 +1588,7 @@ async function generarImagenCatalogo(productos) {
     const fileName = `catalogo-${Date.now()}.jpg`;
 
     const { error } = await supabaseAdmin.storage
-      .from("CELULARES")
+      .from("catalogos")
       .upload(fileName, finalBuffer, {
         contentType: "image/jpeg",
         upsert: true
@@ -1600,7 +1600,7 @@ async function generarImagenCatalogo(productos) {
     }
 
     const { data } = supabaseAdmin.storage
-      .from("CELULARES")
+      .from("catalogos")	
       .getPublicUrl(fileName);
 
     console.log("✅ Catálogo generado:", data.publicUrl);
