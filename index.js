@@ -562,7 +562,7 @@ if (catalogoUrl) {
     },
     {
       headers: {
-        Authorization: `Bearer ${business.token}`,
+        Authorization: `Bearer ${business.access_token}`,
         "Content-Type": "application/json"
       }
     }
