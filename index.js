@@ -1585,7 +1585,7 @@ async function generarImagenCatalogo(productos) {
       .jpeg({ quality: 90 })
       .toBuffer();
 
-    const fileName = `catalogos/catalogo-${Date.now()}.jpg`;
+    const fileName = `catalogo-${Date.now()}.jpg`;
 
     const { error } = await supabaseAdmin.storage
       .from("CELULARES")
