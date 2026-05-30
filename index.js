@@ -589,13 +589,23 @@ await saveCustomerState(business.id, customer.id, state);
     return res.sendStatus(200);
   }
 
-  
+ const opcionesTexto = disponibles
+  .slice(0, 3)
+  .map((p, i) => `${i + 1}️⃣ ${p.name}`)
+  .join("\n");
+
 await replyAndPersist(
   business,
   customer,
   state,
   from,
-  "Estas opciones tengo disponibles 👇"
+  `Estas opciones tengo disponibles 👇
+
+Responde con:
+
+${opcionesTexto}
+
+✍️ También puedes escribir el nombre del producto.`
 );
 
 const catalogoUrl =
