@@ -696,61 +696,7 @@ Responde con el número de la categoría que quieres ver.`
 
   return res.sendStatus(200);
 }
-
-  state.catalogoActual = disponibles.slice(0, 3);
-  await saveCustomerState(business.id, customer.id, state);
-
-  const opcionesTexto = disponibles
-    .slice(0, 3)
-    .map((p, i) => `${i + 1}️⃣ ${p.name}`)
-    .join("\n");
-
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    `📱 Este es nuestro catálogo disponible
-
-Responde con:
-
-${opcionesTexto}
-
-✍️ También puedes escribir el nombre del producto.`
-  );
-
-  const catalogoUrl = await generarImagenCatalogo(disponibles.slice(0, 3));
-
-  if (catalogoUrl) {
-    await axios.post(
-      `https://graph.facebook.com/v23.0/${business.phone_number_id}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to: from,
-        type: "image",
-        image: {
-          link: catalogoUrl,
-          caption: "📱 Catálogo disponible"
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${business.access_token}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-  } else {
-    for (const producto of disponibles.slice(0, 3)) {
-      if (producto.image_url) {
-        await enviarImagenWhatsApp(from, producto, business);
-      }
-    }
-  }
-
-  return res.sendStatus(200);
-}
-
+	
 
 if (wantsOptions) {
   const products = await getBusinessProducts(business.id);
