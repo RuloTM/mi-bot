@@ -613,7 +613,6 @@ ${opcionesTexto}
   return res.sendStatus(200);
 }
 
-
 const wantsOptions =
   textLower.includes("opciones") ||
   textLower.includes("que opciones") ||
@@ -825,57 +824,6 @@ if (
   );
   return res.sendStatus(200);
 }
-
-// 1) Catálogo primero
-const wantsCatalog =
-  !state.etapa && (
-    textLower.includes("catalogo") ||
-    textLower.includes("catálogo") ||
-    textLower.includes("productos") ||
-    textLower.includes("qué vendes") ||
-    textLower.includes("que vendes") ||
-    textLower.includes("qué tienes") ||
-    textLower.includes("que tienes") ||
-    textLower.includes("menu") ||
-    textLower.includes("menú")
-  );
-
-if (wantsCatalog) {
-  state = {
-    etapa: null,
-    perfil: {},
-    carrito: [],
-    productoSeleccionado: null
-  };
-
-  console.log("🔥 Entrando a catálogo");
-
-  const productos = await getBusinessProducts(business.id);
-
-  if (!productos.length) {
-    const emptyMessage = "Aún no hay productos disponibles.";
-    await replyAndPersist(business, customer, state, from, emptyMessage);
-    return res.sendStatus(200);
-  }
-
-  for (const producto of productos) {
-    console.log("📸 Enviando:", producto.name, producto.image_url);
-
-    if (producto.image_url) {
-      await enviarImagenWhatsApp(from, producto, business);
-    } else {
-      const fallbackText = `${producto.name} — $${Number(producto.price).toFixed(2)} MXN
-
-¿Te interesa? Escríbeme el modelo 👌`;
-
-      await enviarWhatsApp(from, fallbackText, business);
-    }
-  }
-
-  await saveCustomerState(business.id, customer.id, state);
-  return res.sendStatus(200);
-
-} 
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
