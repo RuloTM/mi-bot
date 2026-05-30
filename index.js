@@ -569,8 +569,15 @@ return queryWords.some(word => searchable.includes(word));
 
   const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
   state.catalogoActual = disponibles.slice(0, 3);
-  await saveCustomerState(business.id, customer.id, state);
 
+
+console.log(
+  "📦 CATÁLOGO GUARDADO:",
+  state.catalogoActual.map(p => p.name)
+);
+
+await saveCustomerState(business.id, customer.id, state);
+ 
   if (!disponibles.length) {
     await replyAndPersist(
       business,
@@ -1221,26 +1228,29 @@ async function getCustomerState(businessId, customerId) {
     .maybeSingle();
 
   if (error) {
-    console.error("❌ Error obteniendo customer_state:", error);
-    return {
-      etapa: null,
-      perfil: {},
-      productoSeleccionado: null
-    };
-  }
+  console.error("❌ Error obteniendo customer_state:", error);
+  return {
+    etapa: null,
+    perfil: {},
+    productoSeleccionado: null,
+    catalogoActual: []
+  };
+}
 
   if (!data) {
-    return {
-      etapa: null,
-      perfil: {},
-      productoSeleccionado: null
-    };
-  }
+  return {
+    etapa: null,
+    perfil: {},
+    productoSeleccionado: null,
+    catalogoActual: []
+  };
+}
 
   return {
     etapa: data.etapa || null,
     perfil: data.perfil || {},
-    productoSeleccionado: data.producto_seleccionado || null
+    productoSeleccionado: data.producto_seleccionado || null,
+    catalogoActual: data.catalogo_actual || []
   };
 }
 
@@ -1253,6 +1263,7 @@ async function saveCustomerState(businessId, customerId, state) {
     etapa: state.etapa || null,
     perfil: state.perfil || {},
     producto_seleccionado: state.productoSeleccionado || null,
+    catalogo_actual: state.catalogoActual || [],
     updated_at: new Date().toISOString()
   };
 
