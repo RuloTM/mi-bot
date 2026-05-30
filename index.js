@@ -531,6 +531,16 @@ if (
   console.log("🧹 Estado reiniciado para nueva compra");
 }
 
+
+const wantsOptions =
+  textLower.includes("opciones") ||
+  textLower.includes("que opciones") ||
+  textLower.includes("qué opciones") ||
+  textLower.includes("que tienes para") ||
+  textLower.includes("qué tienes para") ||
+  textLower.includes("muestrame") ||
+  textLower.includes("muéstrame");
+
 const wantsCatalog =
   textLower.includes("catalogo") ||
   textLower.includes("catálogo") ||
@@ -613,14 +623,6 @@ ${opcionesTexto}
   return res.sendStatus(200);
 }
 
-const wantsOptions =
-  textLower.includes("opciones") ||
-  textLower.includes("que opciones") ||
-  textLower.includes("qué opciones") ||
-  textLower.includes("que tienes para") ||
-  textLower.includes("qué tienes para") ||
-  textLower.includes("muestrame") ||
-  textLower.includes("muéstrame");
 
 if (wantsOptions) {
   const products = await getBusinessProducts(business.id);
