@@ -436,16 +436,16 @@ if (
         .join("\n");
 
     await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      `📱 Categoría: ${categoria}
+  business,
+  customer,
+  state,
+  from,
+  `📱 Encontré estos productos en ${categoria.charAt(0).toUpperCase() + categoria.slice(1)}:
 
 ${opcionesTexto}
 
-Responde con el número del producto.`
-    );
+👉 Responde con el número del producto que te interesa.`
+);
 
     const catalogoUrl =
       await generarImagenCatalogo(
