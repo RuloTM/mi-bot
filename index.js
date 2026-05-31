@@ -639,6 +639,10 @@ const wantsOptions =
 const wantsCatalog =
   textLower.includes("catalogo") ||
   textLower.includes("catálogo") ||
+  textLower.includes("catalog") ||
+  textLower.includes("catálog") ||
+  textLower.includes("catalago") ||
+  textLower.includes("catálago") ||
   textLower.includes("productos") ||
   textLower.includes("que vendes") ||
   textLower.includes("qué vendes") ||
@@ -647,7 +651,9 @@ const wantsCatalog =
   textLower.includes("que tienes") ||
   textLower.includes("qué tienes") ||
   textLower.includes("muestrame todo") ||
-  textLower.includes("muéstrame todo");
+  textLower.includes("muéstrame todo") ||
+  textLower.includes("menu") ||
+  textLower.includes("menú");
 
 if (wantsCatalog && !wantsOptions) {
   const products = await getBusinessProducts(business.id);
@@ -826,6 +832,75 @@ if (!productoDetectado) {
     );
 }
 
+// 🛡️ Protección contra mensajes ambiguos
+const palabrasProducto = [
+  "iphone",
+  "samsung",
+  "xiaomi",
+  "motorola",
+  "funda",
+  "cargador",
+  "mica",
+  "audifono",
+  "audífono",
+  "producto",
+  "productos",
+  "catalogo",
+  "catálogo",
+  "catalog",
+  "comprar"
+];
+
+const pareceBusquedaProducto =
+  palabrasProducto.some(p =>
+    textLower.includes(p)
+  );
+
+// 🛡️ Protección contra detecciones falsas de IA
+if (
+  productoDetectado &&
+  !pareceBusquedaProducto &&
+  !wantsCatalog &&
+  !wantsOptions &&
+  !state.etapa
+) {
+  console.log(
+    "🛡️ Producto ignorado por mensaje ambiguo:",
+    productoDetectado.name
+  );
+
+  productoDetectado = null;
+}
+
+// Si no hay producto y el mensaje es ambiguo
+if (
+  !productoDetectado &&
+  !pareceBusquedaProducto &&
+  !wantsCatalog &&
+  !wantsOptions &&
+  !state.etapa
+) {
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `👋 Hola, puedo ayudarte a encontrar productos.
+
+📂 Puedes escribir:
+• catálogo
+• productos
+• funda iPhone 13
+• cargador Samsung
+
+¿Qué producto estás buscando?`
+  );
+
+  return res.sendStatus(200);
+}
+
+
 if (productoDetectado) {
 
   if (Number(productoDetectado.stock || 0) <= 0) {
@@ -840,8 +915,9 @@ if (productoDetectado) {
     customer,
     state,
     from,
-    `😕 Lo siento, *${productoDetectado.name}* está agotado por el momento.${alternativas.length ? "\n\nPero tengo estas alternativas disponibles 👇" : "\n\n¿Quieres ver otras opciones disponibles?"}`
-  );
+     `😕 Lo siento, *${productoDetectado.name}* está agotado por el momento.${alternativas.length ? "\n\nPero tengo estas alternativas disponibles 👇" : "\n\n¿Quieres ver otras opciones disponibles?"}`
+    );
+  
 
   for (const alt of alternativas) {
     if (alt.image_url) {
