@@ -939,7 +939,33 @@ if (productoDetectado) {
   state.productoSeleccionado = productoDetectado;
   state.perfil.producto = productoDetectado.name;
   state.perfil.product_id = productoDetectado.id;
+
+ // 👇 PEGA AQUÍ
+  state.etapa = "pidiendo_nombre";
+
+  await saveCustomerState(
+    business.id,
+    customer.id,
+    state
+  );
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `Excelente 🙌 encontré este producto:
+
+📱 ${productoDetectado.name}
+💰 $${Number(productoDetectado.price || 0).toFixed(2)} MXN
+
+Por favor escribe tu nombre completo.`
+  );
+
+  return res.sendStatus(200);
+
 }
+
 
 // 🔒 PRIORIDAD: VALIDACIÓN DE NOMBRE (ANTES DE TODO)
 if (
