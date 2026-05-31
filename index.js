@@ -665,12 +665,12 @@ if (wantsCatalog && !wantsOptions) {
   }
 
   const categorias = [
-    ...new Set(
-      disponibles.map(p =>
-        normalizeText(p.category || "general")
-      )
-    )
-  ].filter(Boolean);
+  ...new Set(
+    disponibles
+      .map(p => normalizeText(p.category || ""))
+      .filter(cat => cat && cat !== "general")
+  )
+].sort();
 
   state.categoriasActuales = categorias;
   state.catalogoActual = [];
