@@ -1056,14 +1056,44 @@ Si todo está correcto, responde: CONFIRMO`;
 }
 
 // 5) Etapa: pedir ciudad y mostrar resumen
+
 if (state.etapa === "pidiendo_ciudad") {
-  state.perfil.ciudad = text.trim();
+  const resultadoCiudad = validarCiudad(text);
+
+  if (!resultadoCiudad.ok) {
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `🙏 Por favor escríbeme una ciudad válida.
+Ejemplo: Veracruz, Monterrey o Ciudad de México`
+    );
+
+    return res.sendStatus(200);
+  }
+
+  state.perfil.ciudad = resultadoCiudad.ciudad;
   state.etapa = "pidiendo_pago";
 
-  const askPaymentMessage = "Perfecto 🙌 ¿Prefieres pagar en efectivo o transferencia?";
-  await replyAndPersist(business, customer, state, from, askPaymentMessage);
-  return res.sendStatus(200);
+  await saveCustomerState(
+    business.id,
+    customer.id,
+    state
+  );
 
+  const askPaymentMessage =
+    "Perfecto 🙌 ¿Prefieres pagar en efectivo o transferencia?";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    askPaymentMessage
+  );
+
+  return res.sendStatus(200);
 }
 
 if (state.etapa === "pidiendo_pago") {
@@ -2269,6 +2299,51 @@ async function validarNombrePersona(texto) {
     nombre
   };
 }
+
+function validarCiudad(texto) {
+  const ciudad = String(texto || "").trim().replace(/\s+/g, " ");
+  const normalizado = normalizarTexto(ciudad);
+
+  if (!ciudad) return { ok: false };
+  if (ciudad.length < 3 || ciudad.length > 50) return { ok: false };
+  if (/\d/.test(ciudad)) return { ok: false };
+
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(ciudad)) {
+    return { ok: false };
+  }
+
+  const palabras = normalizado.split(" ").filter(Boolean);
+  if (palabras.length > 4) return { ok: false };
+
+  const prohibidas = [
+    "si", "ok", "vale", "va", "confirmo",
+    "hola", "buenas", "gracias",
+    "catalogo", "catalog", "productos", "producto",
+    "funda", "iphone", "samsung", "xiaomi", "motorola",
+    "cargador", "mica", "audifono", "audifonos",
+    "transferencia", "efectivo", "tarjeta", "pago",
+    "calle", "avenida", "colonia", "numero", "direccion",
+    "nombre", "completo"
+  ];
+
+  if (prohibidas.some(p => normalizado.includes(p))) {
+    return { ok: false };
+  }
+
+  if (palabras.some(p => p.length < 2 || p.length > 20)) {
+    return { ok: false };
+  }
+
+  return {
+    ok: true,
+    ciudad
+  };
+}
+
+function extractPerfil(perfil = {}, texto = "") {
+  ...
+}
+
 
 // 👇 tu función existente
 function extractPerfil(perfil = {}, texto = "") {
