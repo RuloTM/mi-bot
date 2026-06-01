@@ -1121,6 +1121,8 @@ Opciones:
     );
 
     return res.sendStatus(200);
+`
+);
   }
 
   state.perfil.pago =
