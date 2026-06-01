@@ -1083,7 +1083,7 @@ Ejemplo: Veracruz, Monterrey o Ciudad de México`
   );
 
   const askPaymentMessage =
-    "Perfecto 🙌 ¿Prefieres pagar en efectivo o transferencia?";
+    "Perfecto 🙌 ¿Prefieres pagar con tarjeta o transferencia?";
 
   await replyAndPersist(
     business,
@@ -1096,14 +1096,58 @@ Ejemplo: Veracruz, Monterrey o Ciudad de México`
   return res.sendStatus(200);
 }
 
+
 if (state.etapa === "pidiendo_pago") {
-  state.perfil.pago = text.trim();
+
+  const pago = normalizarTexto(text);
+
+  const pagosValidos = [
+  "tarjeta",
+  "transferencia"
+];
+
+  if (!pagosValidos.includes(pago)) {
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `🙏 Por favor indica un método de pago válido.
+
+Opciones:
+• Tarjeta
+• Transferencia
+    );
+
+    return res.sendStatus(200);
+  }
+
+  state.perfil.pago =
+  pago === "tarjeta"
+    ? "Tarjeta"
+    : "Transferencia";
+
   state.etapa = "pidiendo_direccion";
 
-  if (business.payment_enabled && business.payment_mode === "link") {
-    const linkPago = String(business.payment_link_url || "").trim();
+  await saveCustomerState(
+    business.id,
+    customer.id,
+    state
+  );
+
+  if (
+    business.payment_enabled &&
+    business.payment_mode === "link"
+  ) {
+
+    const linkPago =
+      String(
+        business.payment_link_url || ""
+      ).trim();
 
     if (!linkPago) {
+
       await replyAndPersist(
         business,
         customer,
@@ -1111,8 +1155,40 @@ if (state.etapa === "pidiendo_pago") {
         from,
         "Perfecto 👍 tengo registrado tu método de pago. Ahora necesito tu dirección completa de entrega."
       );
+
       return res.sendStatus(200);
     }
+
+    const mensajePago = `Perfecto 👍 puedes pagar aquí:
+
+👉 ${linkPago}
+
+En cuanto se refleje el pago, procesamos tu pedido 🚀
+
+Después compárteme tu dirección completa de entrega.`;
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      mensajePago
+    );
+
+    return res.sendStatus(200);
+  }
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "Perfecto 👍 ahora necesito tu dirección completa de entrega."
+  );
+
+  return res.sendStatus(200);
+}
+
 
     const mensajePago = `Perfecto 👍 puedes pagar aquí:
 
