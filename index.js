@@ -485,7 +485,7 @@ ${opcionesTexto}
 if (
   state.catalogoActual &&
   Array.isArray(state.catalogoActual) &&
-  ["1", "2", "3"].includes(text.trim())
+  ["1", "2", "3", "4", "5", "6"].includes(text.trim())
 ) {
 
   const index = Number(text.trim()) - 1;
@@ -754,8 +754,11 @@ await saveCustomerState(business.id, customer.id, state);
   }
 
  const opcionesTexto = disponibles
-  .slice(0, 3)
-  .map((p, i) => `${i + 1}️⃣ ${p.name}`)
+  .slice(0, 6)
+  .map(
+    (p, i) =>
+      `${i + 1}️⃣ ${p.name} - $${Number(p.price || 0).toFixed(2)} MXN`
+  )
   .join("\n");
 
 await replyAndPersist(
@@ -2105,42 +2108,60 @@ const NOMBRES_COMUNES = new Set([
   "verónica", "alejandra", "monica", "mónica", "erika", "erica", "norma"
 ]);
 
+
 function esNombreValido(texto) {
   const limpio = String(texto || "").trim().replace(/\s+/g, " ");
   const normalizado = normalizarTexto(limpio);
 
   if (!limpio) return false;
   if (limpio.length < 6 || limpio.length > 60) return false;
+
+  // No números
   if (/\d/.test(limpio)) return false;
+
+  // Solo letras y espacios
   if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(limpio)) return false;
 
   const palabras = limpio.split(" ").filter(Boolean);
   const palabrasNorm = normalizado.split(" ").filter(Boolean);
 
-  // exigir nombre + apellido
+  // Nombre + apellido, máximo 4 palabras
   if (palabras.length < 2 || palabras.length > 4) return false;
 
-  // cada palabra razonable
+  // Cada palabra razonable
   if (palabras.some(p => p.length < 2 || p.length > 20)) return false;
 
-  // bloquear palabras prohibidas exactas
+  // Bloqueo exacto
   if (palabrasNorm.some(p => PALABRAS_PROHIBIDAS_NOMBRE.has(p))) return false;
 
-  // bloquear frases sospechosas
+  // Bloqueo por frases/comercio/pedido
   const sospechosas = [
-    "catalog", "catalg", "precio", "producto", "transfer",
-    "envio", "direccion", "calle", "funda", "iphone", "samsung",
-    "perro", "gato"
+    "catalog", "catalogo", "catalago", "producto", "productos",
+    "precio", "cuanto", "vale", "costo",
+    "transferencia", "tarjeta", "efectivo", "pago",
+    "envio", "direccion", "calle", "colonia", "numero",
+    "funda", "iphone", "samsung", "xiaomi", "motorola",
+    "cargador", "mica", "audifono", "audifonos",
+    "hola", "buenas", "gracias", "quiero", "comprar",
+    "si", "ok", "vale", "va", "confirmo",
+    "veracruz", "mexico", "cdmx", "monterrey", "guadalajara"
   ];
+
   if (sospechosas.some(s => normalizado.includes(s))) return false;
 
-  // evitar repeticiones raras
+  // Evitar nombres raros repetidos
   const unicas = new Set(palabrasNorm);
   if (unicas.size < palabrasNorm.length) return false;
 
-  // al menos una palabra debe parecer nombre real común
-  const tieneNombreComun = palabrasNorm.some(p => NOMBRES_COMUNES.has(p));
-  if (!tieneNombreComun) return false;
+  // Evitar palabras iguales tipo "Juan Juan"
+  if (palabrasNorm[0] === palabrasNorm[1]) return false;
+
+  // Rechazar si todas las palabras son demasiado genéricas
+  const genericas = new Set([
+    "nombre", "completo", "cliente", "persona", "usuario"
+  ]);
+
+  if (palabrasNorm.every(p => genericas.has(p))) return false;
 
   return true;
 }
@@ -2806,7 +2827,13 @@ app.get('/whatsapp-connection', async (req, res) => {
 
 app.get("/business-config", requireAuth, async (req, res) => {
   try {
-    const businessId = req.user.business_id;
+    const businessId = req.user?.business_id;
+
+    if (!businessId || businessId === "undefined") {
+      return res.status(400).json({
+        error: "business_id requerido"
+      });
+    }
 
     const { data, error } = await supabase
       .from("businesses")
