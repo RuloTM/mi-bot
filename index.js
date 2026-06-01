@@ -419,6 +419,12 @@ if (
     state.catalogoActual =
       disponibles.slice(0, 6);
 
+
+// 🧹 Limpiar producto anterior
+state.productoSeleccionado = null;
+state.perfil.producto = null;
+state.perfil.product_id = null;
+
     state.etapa = null;
 
     await saveCustomerState(
