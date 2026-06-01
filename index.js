@@ -2341,7 +2341,7 @@ function validarCiudad(texto) {
 }
 
 function extractPerfil(perfil = {}, texto = "") {
-  ...
+  
 }
 
 
