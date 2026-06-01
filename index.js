@@ -824,21 +824,33 @@ if (catalogoUrl) {
   return res.sendStatus(200);
 }
 
-
 // 🔥 Detectar producto automáticamente desde texto
-const productosDetectables = await getBusinessProducts(business.id);
+let productoDetectado = null;
+let productosDetectables = [];
 
-let productoDetectado =
-  findProductFromText(productosDetectables, text);
+if (
+  !state.etapa ||
+  state.etapa === "seleccionando_categoria"
+) {
 
-if (!productoDetectado) {
-  console.log("🤖 Buscando producto con IA...");
+  productosDetectables =
+    await getBusinessProducts(business.id);
 
   productoDetectado =
-    await findProductWithAI(
+    findProductFromText(
       productosDetectables,
       text
     );
+
+  if (!productoDetectado) {
+    console.log("🤖 Buscando producto con IA...");
+
+    productoDetectado =
+      await findProductWithAI(
+        productosDetectables,
+        text
+      );
+  }
 }
 
 // 🛡️ Protección contra mensajes ambiguos
