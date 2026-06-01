@@ -417,7 +417,7 @@ if (
     );
 
     state.catalogoActual =
-      disponibles.slice(0, 3);
+      disponibles.slice(0, 6);
 
     state.etapa = null;
 
@@ -732,7 +732,7 @@ return queryWords.some(word => searchable.includes(word));
   });
 
   const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
-  state.catalogoActual = disponibles.slice(0, 3);
+  state.catalogoActual = disponibles.slice(0, 6);
 
 
 console.log(
@@ -1784,22 +1784,23 @@ function findAlternativeProducts(products, unavailableProduct, limit = 3) {
 
 async function generarImagenCatalogo(productos) {
   try {
-    const items = productos.slice(0, 3);
+    const items = productos.slice(0, 6);
 
     const width = 1200;
-    const height = 520;
+    const height = 940;
     const cardWidth = 360;
-    const cardHeight = 440;
-    const gap = 30;
+    const cardHeight = 400;
+    const gapX = 30;
+    const gapY = 35;
     const startX = 45;
-    const startY = 40;
+    const startY = 55;
 
     const composites = [];
 
     const baseSvg = `
       <svg width="${width}" height="${height}">
         <rect width="100%" height="100%" fill="#f3f4f6"/>
-        <text x="45" y="34" font-size="24" font-family="Arial" font-weight="700" fill="#111827">
+        <text x="45" y="35" font-size="24" font-family="Arial" font-weight="700" fill="#111827">
           Opciones disponibles
         </text>
       </svg>
@@ -1809,8 +1810,12 @@ async function generarImagenCatalogo(productos) {
 
     for (let i = 0; i < items.length; i++) {
       const product = items[i];
-      const x = startX + i * (cardWidth + gap);
-      const y = startY;
+
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+
+      const x = startX + col * (cardWidth + gapX);
+      const y = startY + row * (cardHeight + gapY);
 
       let imageBuffer = null;
 
@@ -1821,9 +1826,7 @@ async function generarImagenCatalogo(productos) {
           });
 
           imageBuffer = await sharp(Buffer.from(imgRes.data))
-            .resize(320, 260, {
-              fit: "cover"
-            })
+            .resize(320, 220, { fit: "cover" })
             .png()
             .toBuffer();
 
@@ -1835,14 +1838,17 @@ async function generarImagenCatalogo(productos) {
       const cardSvg = `
         <svg width="${cardWidth}" height="${cardHeight}">
           <rect x="0" y="0" width="${cardWidth}" height="${cardHeight}" rx="24" fill="white"/>
-          <rect x="20" y="20" width="320" height="260" rx="18" fill="#e5e7eb"/>
-          <text x="20" y="330" font-size="22" font-family="Arial" font-weight="700" fill="#111827">
-            ${String(product.name || "").slice(0, 28)}
+          <rect x="20" y="20" width="320" height="220" rx="18" fill="#e5e7eb"/>
+
+          <text x="20" y="278" font-size="18" font-family="Arial" font-weight="700" fill="#111827">
+            ${i + 1}. ${String(product.name || "").slice(0, 28)}
           </text>
-          <text x="20" y="372" font-size="30" font-family="Arial" font-weight="800" fill="#111827">
+
+          <text x="20" y="318" font-size="26" font-family="Arial" font-weight="800" fill="#111827">
             $${Number(product.price || 0).toFixed(2)} MXN
           </text>
-          <text x="20" y="410" font-size="18" font-family="Arial" fill="#16a34a">
+
+          <text x="20" y="355" font-size="17" font-family="Arial" fill="#16a34a">
             Stock: ${Number(product.stock || 0)}
           </text>
         </svg>
@@ -1883,7 +1889,7 @@ async function generarImagenCatalogo(productos) {
     }
 
     const { data } = supabaseAdmin.storage
-      .from("catalogos")	
+      .from("catalogos")
       .getPublicUrl(fileName);
 
     console.log("✅ Catálogo generado:", data.publicUrl);
