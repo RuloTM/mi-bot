@@ -958,10 +958,13 @@ if (productoDetectado) {
   console.log("🧠 Producto detectado:", productoDetectado.name);
 
   state.productoSeleccionado = productoDetectado;
-  state.perfil.producto = productoDetectado.name;
-  state.perfil.product_id = productoDetectado.id;
 
- // 👇 PEGA AQUÍ
+// 🧹 Iniciar pedido limpio
+state.perfil = {
+  producto: productoDetectado.name,
+  product_id: productoDetectado.id
+};
+
   state.etapa = "pidiendo_nombre";
 
   await saveCustomerState(
