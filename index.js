@@ -1030,7 +1030,28 @@ if (
 
 // 4) Etapa: pedir dirección
 if (state.etapa === "pidiendo_direccion") {
-  state.perfil.direccion = text.trim();
+
+  const resultadoDireccion =
+    validarDireccion(text);
+
+  if (!resultadoDireccion.ok) {
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      `🙏 Por favor escribe una dirección válida.
+
+Ejemplo:
+Calle 20 #145 Col. Carranza, Veracruz`
+    );
+
+    return res.sendStatus(200);
+  }
+
+  state.perfil.direccion =
+    resultadoDireccion.direccion;
   state.etapa = "confirmacion";
 
 
@@ -2338,6 +2359,47 @@ function validarCiudad(texto) {
     ciudad
   };
 }
+
+function validarDireccion(texto) {
+  const direccion = String(texto || "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  if (!direccion) {
+    return { ok: false };
+  }
+
+  if (direccion.length < 10) {
+    return { ok: false };
+  }
+
+  const prohibidas = [
+    "si",
+    "sí",
+    "ok",
+    "hola",
+    "transferencia",
+    "tarjeta",
+    "veracruz",
+    "monterrey",
+    "mexico",
+    "confirmo"
+  ];
+
+  if (
+    prohibidas.includes(
+      direccion.toLowerCase()
+    )
+  ) {
+    return { ok: false };
+  }
+
+  return {
+    ok: true,
+    direccion
+  };
+}
+
 
 function extractPerfil(perfil = {}, texto = "") {
   
