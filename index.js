@@ -571,6 +571,7 @@ if (
     textLower.includes("cómo pago")
   )
 ) {
+
   // 🔒 NO saltar datos obligatorios
   if (!state.perfil.nombre) {
     state.etapa = "pidiendo_nombre";
@@ -1055,7 +1056,7 @@ Si todo está correcto, responde: CONFIRMO`;
   return res.sendStatus(200);
 }
 
-// 5) Etapa: pedir ciudad y mostrar resumen
+// 5) Etapa: pedir ciudad y pago
 
 if (state.etapa === "pidiendo_ciudad") {
   const resultadoCiudad = validarCiudad(text);
@@ -1076,38 +1077,25 @@ Ejemplo: Veracruz, Monterrey o Ciudad de México`
   state.perfil.ciudad = resultadoCiudad.ciudad;
   state.etapa = "pidiendo_pago";
 
-  await saveCustomerState(
-    business.id,
-    customer.id,
-    state
-  );
-
-  const askPaymentMessage =
-    "Perfecto 🙌 ¿Prefieres pagar con tarjeta o transferencia?";
+  await saveCustomerState(business.id, customer.id, state);
 
   await replyAndPersist(
     business,
     customer,
     state,
     from,
-    askPaymentMessage
+    "Perfecto 🙌 ¿Prefieres pagar con tarjeta o transferencia?"
   );
 
   return res.sendStatus(200);
 }
 
-
 if (state.etapa === "pidiendo_pago") {
-
   const pago = normalizarTexto(text);
 
-  const pagosValidos = [
-  "tarjeta",
-  "transferencia"
-];
+  const pagosValidos = ["tarjeta", "transferencia"];
 
   if (!pagosValidos.includes(pago)) {
-
     await replyAndPersist(
       business,
       customer,
@@ -1117,68 +1105,16 @@ if (state.etapa === "pidiendo_pago") {
 
 Opciones:
 • Tarjeta
-• Transferencia
+• Transferencia`
     );
 
     return res.sendStatus(200);
-`
-);
   }
 
-  state.perfil.pago =
-  pago === "tarjeta"
-    ? "Tarjeta"
-    : "Transferencia";
-
+  state.perfil.pago = pago === "tarjeta" ? "Tarjeta" : "Transferencia";
   state.etapa = "pidiendo_direccion";
 
-  await saveCustomerState(
-    business.id,
-    customer.id,
-    state
-  );
-
-  if (
-    business.payment_enabled &&
-    business.payment_mode === "link"
-  ) {
-
-    const linkPago =
-      String(
-        business.payment_link_url || ""
-      ).trim();
-
-    if (!linkPago) {
-
-      await replyAndPersist(
-        business,
-        customer,
-        state,
-        from,
-        "Perfecto 👍 tengo registrado tu método de pago. Ahora necesito tu dirección completa de entrega."
-      );
-
-      return res.sendStatus(200);
-    }
-
-    const mensajePago = `Perfecto 👍 puedes pagar aquí:
-
-👉 ${linkPago}
-
-En cuanto se refleje el pago, procesamos tu pedido 🚀
-
-Después compárteme tu dirección completa de entrega.`;
-
-    await replyAndPersist(
-      business,
-      customer,
-      state,
-      from,
-      mensajePago
-    );
-
-    return res.sendStatus(200);
-  }
+  await saveCustomerState(business.id, customer.id, state);
 
   await replyAndPersist(
     business,
@@ -1192,22 +1128,7 @@ Después compárteme tu dirección completa de entrega.`;
 }
 
 
-    const mensajePago = `Perfecto 👍 puedes pagar aquí:
 
-👉 ${linkPago}
-
-En cuanto se refleje el pago, procesamos tu pedido 🚀
-
-Después compárteme tu dirección completa de entrega.`;
-
-    await replyAndPersist(business, customer, state, from, mensajePago);
-    return res.sendStatus(200);
-  }
-
-  const askAddressMessage = "Excelente 🙌 Ahora necesito tu dirección completa de entrega.";
-  await replyAndPersist(business, customer, state, from, askAddressMessage);
-  return res.sendStatus(200);
-}
 
 // 🔄 RESET PRIORIDAD MÁXIMA
 if (textLower === "reset" || textLower === "reiniciar") {
