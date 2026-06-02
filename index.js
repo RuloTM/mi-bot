@@ -381,7 +381,10 @@ if (!business.active) {
     }
 
     state.perfil = state.perfil || {};
-    state.perfil = extractPerfil(state.perfil, text);
+
+    if (!state.etapa) {
+  state.perfil = extractPerfil(state.perfil, text);
+}
 
     const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
