@@ -3083,7 +3083,7 @@ app.get('/whatsapp-connection', async (req, res) => {
 
 app.get("/business-config", requireAuth, async (req, res) => {
   try {
-    const businessId = req.user?.business_id;
+    const businessId = req.businessId;
 
     if (!businessId || businessId === "undefined") {
       return res.status(400).json({
@@ -3118,7 +3118,7 @@ app.get("/business-config", requireAuth, async (req, res) => {
 
 app.put("/business-config", requireAuth, async (req, res) => {
   try {
-    const businessId = req.user.business_id;
+    const businessId = req.businessId;
 
     const {
       name,
