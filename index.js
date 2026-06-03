@@ -2924,6 +2924,14 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "No tienes acceso a este pedido" });
     }
 
+if (order.status === status) {
+  return res.json({
+    ok: true,
+    order,
+    message: "El pedido ya tiene ese estado"
+  });
+}
+
     const { data, error } = await supabase
       .from("orders")
       .update({ status })
