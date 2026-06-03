@@ -2901,7 +2901,18 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, business_id")
+      .select(`
+        id,
+        business_id,
+        customer_id,
+        product,
+        full_name,
+        total,
+        status,
+        customers (
+          whatsapp
+        )
+      `)
       .eq("id", orderId)
       .single();
 
@@ -2925,12 +2936,66 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    const { data: business, error: businessError } = await supabase
+      .from("businesses")
+      .select("phone_number_id, access_token")
+      .eq("id", req.businessId)
+      .single();
+
+    if (businessError || !business) {
+      console.error("No se pudo cargar negocio para notificación:", businessError);
+      return res.json({ ok: true, order: data, warning: "Estado actualizado, sin notificación" });
+    }
+
+    const customerPhone = order.customers?.whatsapp;
+
+    if (customerPhone && business.phone_number_id && business.access_token) {
+      let message = "";
+
+      if (status === "paid") {
+        message = `✅ Hemos recibido tu pago.
+
+Tu pedido está siendo preparado.
+
+Producto: ${order.product || "tu producto"}
+Total: $${Number(order.total || 0).toFixed(2)} MXN
+
+Gracias por tu compra 🙌`;
+      }
+
+      if (status === "shipped") {
+        message = `📦 Tu pedido ya fue enviado.
+
+Producto: ${order.product || "tu producto"}
+
+Gracias por comprar con nosotros 🙌`;
+      }
+
+      if (status === "completed") {
+        message = `🎉 Tu pedido fue completado.
+
+Producto: ${order.product || "tu producto"}
+
+Gracias por tu compra 🙌`;
+      }
+
+      if (message) {
+        await enviarWhatsApp(
+          customerPhone,
+          message,
+          business
+        );
+      }
+    }
+
     res.json({ ok: true, order: data });
+
   } catch (err) {
-    console.error(err);
+    console.error("Error actualizando estado:", err);
     res.status(500).json({ error: "Error actualizando estado" });
   }
 });
+
 
 app.get('/whatsapp-connection', async (req, res) => {
 
