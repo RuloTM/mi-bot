@@ -459,6 +459,14 @@
     📥 Importar Excel
   </button>
 
+<button
+  id="exportExcelBtn"
+  type="button"
+  class="btn-shipped"
+>
+  📤 Exportar Excel
+</button>
+
 </div>
 
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
@@ -1606,6 +1614,48 @@ if (importExcelBtn) {
   });
 }
 
+const exportExcelBtn = document.getElementById("exportExcelBtn");
+
+if (exportExcelBtn) {
+  exportExcelBtn.addEventListener("click", async () => {
+    try {
+      exportExcelBtn.disabled = true;
+      exportExcelBtn.textContent = "Exportando...";
+
+      const token = await getAccessToken();
+
+      const res = await fetch("/export-products", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error("No se pudo exportar el catálogo");
+      }
+
+      const blob = await res.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "productos.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error("Error exportando Excel:", error);
+      alert(error.message || "Error exportando Excel");
+    } finally {
+      exportExcelBtn.disabled = false;
+      exportExcelBtn.textContent = "📤 Exportar Excel";
+    }
+  });
+}
     initPanel();
 </script>
 <script>

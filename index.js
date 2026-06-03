@@ -3293,6 +3293,64 @@ app.post(
   }
 );
 
+app.get("/export-products", requireAuth, async (req, res) => {
+  try {
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("sku, name, description, category, price, stock, image_url, active")
+      .eq("business_id", req.businessId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const rows = (products || []).map(p => ({
+      sku: p.sku || "",
+      name: p.name || "",
+      description: p.description || "",
+      category: p.category || "",
+      price: Number(p.price || 0),
+      stock: Number(p.stock || 0),
+      image_url: p.image_url || "",
+      active: p.active === false ? false : true
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Productos"
+    );
+
+    const buffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx"
+    });
+
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=productos.xlsx"
+    );
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    return res.send(buffer);
+
+  } catch (err) {
+    console.error("❌ Error export-products:", err);
+
+    return res.status(500).json({
+      error: "Error exportando productos"
+    });
+  }
+});
 
 app.put("/products/:id", requireAuth, async (req, res) => {
   try {
