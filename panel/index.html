@@ -440,8 +440,26 @@
 <div class="table-card" style="margin-top:24px;">
 
   <div style="padding:16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-
+	
     <h3 style="margin:0;">Catálogo del negocio</h3>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+
+  <input
+    id="excelFile"
+    type="file"
+    accept=".xlsx,.xls,.csv"
+  />
+
+  <button
+    id="importExcelBtn"
+    type="button"
+    class="btn-paid"
+  >
+    📥 Importar Excel
+  </button>
+
+</div>
 
     <div style="display:flex; gap:12px; flex-wrap:wrap;">
 
@@ -1532,6 +1550,50 @@ if (activeFilter) {
   activeFilter.addEventListener("change", loadProducts);
 }
 
+const importExcelBtn = document.getElementById("importExcelBtn");
+
+if (importExcelBtn) {
+  importExcelBtn.addEventListener("click", async () => {
+    const fileInput = document.getElementById("excelFile");
+    const file = fileInput.files?.[0];
+
+    if (!file) {
+      alert("Selecciona un archivo Excel o CSV");
+      return;
+    }
+
+    try {
+      importExcelBtn.disabled = true;
+      importExcelBtn.textContent = "Importando...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await authFetch("/import-products", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo importar");
+      }
+
+      alert(`Productos importados: ${data.imported}`);
+
+      fileInput.value = "";
+      await loadProducts();
+
+    } catch (error) {
+      console.error("Error importando Excel:", error);
+      alert(error.message || "Error importando Excel");
+    } finally {
+      importExcelBtn.disabled = false;
+      importExcelBtn.textContent = "📥 Importar Excel";
+    }
+  });
+}
 
     initPanel();
 </script>

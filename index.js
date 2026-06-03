@@ -8,11 +8,17 @@ const OpenAI = require("openai");
 const axios = require("axios");
 const sharp = require("sharp");
 const path = require("path");
+const multer = require("multer");
+const XLSX = require("xlsx");
 const { createClient } = require("@supabase/supabase-js");
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const upload = multer({
+  storage: multer.memoryStorage()
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -3109,6 +3115,111 @@ app.post("/products", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Error creando producto" });
   }
 });
+
+app.post(
+  "/import-products",
+  requireAuth,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "No se recibió archivo"
+        });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, {
+        type: "buffer"
+      });
+
+      const sheetName = workbook.SheetNames[0];
+
+      if (!sheetName) {
+        return res.status(400).json({
+          error: "El archivo no tiene hojas"
+        });
+      }
+
+      const sheet = workbook.Sheets[sheetName];
+
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        defval: ""
+      });
+
+      if (!rows.length) {
+        return res.status(400).json({
+          error: "El archivo no tiene productos"
+        });
+      }
+
+      const products = rows
+        .map((row, index) => {
+          const name = String(row.name || row.nombre || "").trim();
+          const price = Number(row.price || row.precio || 0);
+
+          if (!name || !price) {
+            return null;
+          }
+
+          const activeRaw =
+            row.active ??
+            row.activo ??
+            true;
+
+          const active =
+            activeRaw === true ||
+            String(activeRaw).toLowerCase().trim() === "true" ||
+            String(activeRaw).toLowerCase().trim() === "si" ||
+            String(activeRaw).toLowerCase().trim() === "sí" ||
+            String(activeRaw).trim() === "1";
+
+          return {
+            business_id: req.businessId,
+            sku: String(row.sku || "").trim() || null,
+            name,
+            description: String(row.description || row.descripcion || "").trim() || null,
+            category: String(row.category || row.categoria || "").trim() || null,
+            price,
+            stock: Number(row.stock || 0),
+            image_url: String(row.image_url || row.imagen || row.image || "").trim() || null,
+            active
+          };
+        })
+        .filter(Boolean);
+
+      if (!products.length) {
+        return res.status(400).json({
+          error: "No se encontraron productos válidos. Revisa columnas name y price."
+        });
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert(products)
+        .select();
+
+      if (error) {
+        console.error("❌ Error importando productos:", error);
+        return res.status(500).json({
+          error: error.message
+        });
+      }
+
+      return res.json({
+        ok: true,
+        imported: data.length,
+        products: data
+      });
+
+    } catch (err) {
+      console.error("❌ Error import-products:", err);
+      return res.status(500).json({
+        error: "Error importando productos"
+      });
+    }
+  }
+);
+
 
 app.put("/products/:id", requireAuth, async (req, res) => {
   try {
