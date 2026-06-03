@@ -177,6 +177,10 @@
       color: white;
     }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
     .btn-logout {
       background: #111827;
       color: white;
@@ -281,6 +285,9 @@
         min-width: 1200px;
       }
     }
+
+
+
   </style>
 </head>
 <body>
@@ -892,11 +899,35 @@ window.updateStatus = updateStatus;
             <td><span class="${getStatusClass(order.status)}">${order.status || ""}</span></td>
             <td>${formatDate(order.created_at)}</td>
             <td>
-              <div class="actions">
-                <button class="btn-paid" onclick="event.stopPropagation(); updateStatus('${order.id}', 'paid')">Pagado</button>
-                <button class="btn-shipped" onclick="event.stopPropagation(); updateStatus('${order.id}', 'shipped')">Enviado</button>
-                <a class="action-link btn-wa" href="${waLink}" target="_blank" onclick="event.stopPropagation()">WhatsApp</a>
-              </div>
+              
+
+
+<div class="actions">
+  <button
+    class="btn-paid"
+    ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "disabled" : ""}
+    onclick="event.stopPropagation(); updateStatus('${order.id}', 'paid')"
+  >
+    ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "✓ Pagado" : "Pagado"}
+  </button>
+
+  <button
+    class="btn-shipped"
+    ${order.status === "shipped" || order.status === "completed" ? "disabled" : ""}
+    onclick="event.stopPropagation(); updateStatus('${order.id}', 'shipped')"
+  >
+    ${order.status === "shipped" || order.status === "completed" ? "✓ Enviado" : "Enviado"}
+  </button>
+
+  <a
+    class="action-link btn-wa"
+    href="${waLink}"
+    target="_blank"
+    onclick="event.stopPropagation()"
+  >
+    WhatsApp
+  </a>
+</div>
             </td>
           `;
 
