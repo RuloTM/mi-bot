@@ -429,6 +429,16 @@ button:disabled {
     <input id="businessAccessToken" type="password" placeholder="Access Token"
       style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
 
+<input id="businessBankName" type="text" placeholder="Banco para transferencias"
+  style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+<input id="businessAccountHolder" type="text" placeholder="Titular de la cuenta"
+  style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
+<input id="businessClabe" type="text" placeholder="CLABE interbancaria"
+  maxlength="18"
+  style="padding:10px; border:1px solid #d1d5db; border-radius:10px;" />
+
     <button type="submit" class="btn-paid" style="width:max-content;">
       Guardar configuración
     </button>
@@ -1002,6 +1012,10 @@ async function loadBusinessConfig() {
     document.getElementById("businessPhoneNumberId").value = business.phone_number_id || "";
     document.getElementById("businessAccessToken").value = business.access_token || "";
 
+    document.getElementById("businessBankName").value = business.bank_name || "";
+    document.getElementById("businessAccountHolder").value = business.account_holder || "";
+    document.getElementById("businessClabe").value = business.clabe || "";
+
   } catch (error) {
     console.error("Error cargando configuración negocio:", error);
   }
@@ -1014,13 +1028,18 @@ if (businessConfigForm) {
     e.preventDefault();
 
     try {
-      const body = {
-        name: document.getElementById("businessName").value.trim(),
-        city: document.getElementById("businessCity").value.trim(),
-        prompt: document.getElementById("businessPrompt").value.trim(),
-        phone_number_id: document.getElementById("businessPhoneNumberId").value.trim(),
-        access_token: document.getElementById("businessAccessToken").value.trim()
-      };
+      
+const body = {
+  name: document.getElementById("businessName").value.trim(),
+  city: document.getElementById("businessCity").value.trim(),
+  prompt: document.getElementById("businessPrompt").value.trim(),
+  phone_number_id: document.getElementById("businessPhoneNumberId").value.trim(),
+  access_token: document.getElementById("businessAccessToken").value.trim(),
+
+  bank_name: document.getElementById("businessBankName").value.trim(),
+  account_holder: document.getElementById("businessAccountHolder").value.trim(),
+  clabe: document.getElementById("businessClabe").value.trim()
+};
 
       const res = await authFetch("/business-config", {
         method: "PUT",

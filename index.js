@@ -2777,6 +2777,9 @@ app.get("/business/config", requireAuth, async (req, res) => {
         payment_enabled,
         payment_mode,
         payment_link_url
+        bank_name,
+        account_holder,
+        clabe 
       `)
       .eq("id", req.businessId)
       .single();
@@ -2812,6 +2815,9 @@ app.put("/business/config", requireAuth, async (req, res) => {
       payment_enabled,
       payment_mode,
       payment_link_url
+      bank_name,
+      account_holder,
+      clabe
     } = req.body;
 
     const payload = {};
@@ -2832,6 +2838,17 @@ app.put("/business/config", requireAuth, async (req, res) => {
   payload.payment_link_url = String(payment_link_url).trim();
 }
 
+if (bank_name !== undefined) {
+  payload.bank_name = String(bank_name).trim();
+}
+
+if (account_holder !== undefined) {
+  payload.account_holder = String(account_holder).trim();
+}
+
+if (clabe !== undefined) {
+  payload.clabe = String(clabe).trim();
+}
 
     const { data, error } = await supabase
       .from("businesses")
