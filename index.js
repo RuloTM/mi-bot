@@ -2814,7 +2814,7 @@ app.put("/business/config", requireAuth, async (req, res) => {
       active,
       payment_enabled,
       payment_mode,
-      payment_link_url
+      payment_link_url,
       bank_name,
       account_holder,
       clabe
