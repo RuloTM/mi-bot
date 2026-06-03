@@ -769,6 +769,8 @@ async function authFetch(url, options = {}) {
       }
     }
 
+window.updateStatus = updateStatus;
+
     async function loadMessages(customerId) {
       try {
         const res = await authFetch(`/customers/${customerId}/messages`);
