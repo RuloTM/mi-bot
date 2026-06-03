@@ -3093,7 +3093,17 @@ app.get("/business-config", requireAuth, async (req, res) => {
 
     const { data, error } = await supabase
       .from("businesses")
-      .select("id, name, city, prompt, phone_number_id, access_token")
+      .select(`
+        id,
+        name,
+        city,
+        prompt,
+        phone_number_id,
+        access_token,
+        bank_name,
+        account_holder,
+        clabe
+      `)
       .eq("id", businessId)
       .single();
 
@@ -3115,7 +3125,10 @@ app.put("/business-config", requireAuth, async (req, res) => {
       city,
       prompt,
       phone_number_id,
-      access_token
+      access_token,
+      bank_name,
+      account_holder,
+      clabe
     } = req.body;
 
     const { data, error } = await supabase
@@ -3125,7 +3138,10 @@ app.put("/business-config", requireAuth, async (req, res) => {
         city,
         prompt,
         phone_number_id,
-        access_token
+        access_token,
+        bank_name,
+        account_holder,
+        clabe
       })
       .eq("id", businessId)
       .select()
@@ -3142,6 +3158,7 @@ app.put("/business-config", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Error guardando configuración" });
   }
 });
+
 
 app.get("/products", requireAuth, async (req, res) => {
   try {
