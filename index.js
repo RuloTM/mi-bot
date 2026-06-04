@@ -1308,6 +1308,12 @@ if (textLower === "confirmo") {
 
   console.log("✅ PEDIDO GUARDADO:", orderSaved);
 
+await notifyBusinessOwner(
+  business,
+  orderSaved,
+  state
+);
+
 const cantidadPedido = Number(state.perfil.cantidad || 1);
 
 const productId =
@@ -1643,6 +1649,40 @@ async function replyAndPersist(business, customer, state, to, text) {
   await saveMessage(business.id, customer.id, "assistant", text);
   await saveCustomerState(business.id, customer.id, state);
   await enviarWhatsApp(to, text, business);
+}
+
+async function notifyBusinessOwner(business, orderSaved, state) {
+  try {
+    const ownerPhone = String(business.owner_phone || "").trim();
+
+    if (!ownerPhone) {
+      console.log("ℹ️ Negocio sin owner_phone, no se envía notificación");
+      return;
+    }
+
+    const perfil = state.perfil || {};
+
+    const mensaje = `🔔 NUEVO PEDIDO
+
+👤 Cliente: ${orderSaved.full_name || perfil.nombre || "Sin nombre"}
+📦 Producto: ${orderSaved.product_name || perfil.producto || "Sin producto"}
+🎨 Color: ${orderSaved.color || perfil.color || "N/A"}
+🔢 Cantidad: ${orderSaved.quantity || perfil.cantidad || 1}
+🏙️ Ciudad: ${orderSaved.city || perfil.ciudad || "Sin ciudad"}
+💳 Pago: ${orderSaved.payment_method || perfil.pago || "Sin método"}
+💰 Total: $${Number(orderSaved.total || 0).toFixed(2)} MXN
+
+📍 Dirección:
+${orderSaved.address || perfil.direccion || "Sin dirección"}
+
+Estado: ${orderSaved.status || "pending"}`;
+
+    await enviarWhatsApp(ownerPhone, mensaje, business);
+
+    console.log("✅ Notificación enviada al dueño:", ownerPhone);
+  } catch (error) {
+    console.error("❌ Error notificando al dueño:", error);
+  }
 }
 
 async function clearCustomerState(businessId, customerId) {
