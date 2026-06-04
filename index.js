@@ -377,6 +377,21 @@ if (!business.active) {
     let state = await getCustomerState(business.id, customer.id);
     console.log("🧠 STATE CARGADO:", JSON.stringify(state));
 
+if (message.type === "image" && state.etapa === "esperando_comprobante") {
+  console.log("📸 Comprobante recibido");
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "📸 Comprobante recibido. Un asesor verificará tu pago y te confirmará en breve ✅"
+  );
+
+  return res.sendStatus(200);
+}
+
+
     if (!state || typeof state !== "object") {
       state = {
         etapa: null,
@@ -388,6 +403,19 @@ if (!business.active) {
 
     state.perfil = state.perfil || {};
 
+if (message.type === "image" && state.etapa === "esperando_comprobante") {
+  console.log("📸 Comprobante recibido");
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "📸 Comprobante recibido. Un asesor verificará tu pago y te confirmará en breve ✅"
+  );
+
+  return res.sendStatus(200);
+}
     if (!state.etapa) {
   state.perfil = extractPerfil(state.perfil, text);
 }
@@ -1348,9 +1376,27 @@ if (productId) {
   payment_link_url: business.payment_link_url
 });
 
-let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
 
-if (business.payment_enabled && business.payment_mode === "link") {
+let mensajeFinal = "¡Listo! 🎉 Tu pedido ha sido confirmado.";
+let esperarComprobante = false;
+
+if (orderSaved.payment_method === "Transferencia") {
+  esperarComprobante = true;
+
+  state.etapa = "esperando_comprobante";
+  state.order_id = orderSaved.id;
+
+  mensajeFinal = `¡Listo! 🎉 Tu pedido ha sido confirmado.
+
+📸 Ahora envíame tu comprobante de transferencia para validarlo.`;
+}
+
+
+if (
+  !esperarComprobante &&
+  business.payment_enabled &&
+  business.payment_mode === "link"
+) {
   const linkPago = String(business.payment_link_url || "").trim();
 
   if (linkPago) {
@@ -1374,11 +1420,13 @@ await replyAndPersist(
   mensajeFinal
 );
 
-
-
-  await clearCustomerState(business.id, customer.id);
-  state = getEmptyState(); // 🔥 reset inmediato en memoria
+ if (esperarComprobante) {
   await saveCustomerState(business.id, customer.id, state);
+} else {
+  await clearCustomerState(business.id, customer.id);
+  state = getEmptyState();
+  await saveCustomerState(business.id, customer.id, state);
+}
 
   return res.sendStatus(200);
 }
