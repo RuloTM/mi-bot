@@ -1141,24 +1141,79 @@ Opciones:
     return res.sendStatus(200);
   }
 
-  state.perfil.pago = pago === "tarjeta" ? "Tarjeta" : "Transferencia";
+  state.perfil.pago =
+    pago === "tarjeta"
+      ? "Tarjeta"
+      : "Transferencia";
+
   state.etapa = "pidiendo_direccion";
 
-  await saveCustomerState(business.id, customer.id, state);
+  await saveCustomerState(
+    business.id,
+    customer.id,
+    state
+  );
+
+  let mensajePago = "";
+
+  if (pago === "tarjeta") {
+    const linkPago = String(
+      business.payment_link_url || ""
+    ).trim();
+
+    if (linkPago) {
+      mensajePago = `Perfecto 👍 puedes pagar con tarjeta aquí:
+
+👉 ${linkPago}
+
+Después compárteme tu dirección completa de entrega.`;
+    } else {
+      mensajePago = `Perfecto 👍 registré tu pago con tarjeta.
+
+Ahora necesito tu dirección completa de entrega.`;
+    }
+  }
+
+  if (pago === "transferencia") {
+    const bankName = String(
+      business.bank_name || ""
+    ).trim();
+
+    const accountHolder = String(
+      business.account_holder || ""
+    ).trim();
+
+    const clabe = String(
+      business.clabe || ""
+    ).trim();
+
+    if (bankName && accountHolder && clabe) {
+      mensajePago = `Perfecto 👍 puedes realizar la transferencia a:
+
+🏦 Banco: ${bankName}
+👤 Titular: ${accountHolder}
+🔢 CLABE: ${clabe}
+
+Cuando realices el pago, envíame tu comprobante.
+
+Ahora necesito tu dirección completa de entrega.`;
+    } else {
+      mensajePago = `Perfecto 👍 registré transferencia como método de pago.
+
+Ahora necesito tu dirección completa de entrega.`;
+    }
+  }
 
   await replyAndPersist(
     business,
     customer,
     state,
     from,
-    "Perfecto 👍 ahora necesito tu dirección completa de entrega."
+    mensajePago
   );
 
   return res.sendStatus(200);
 }
-
-
-
 
 // 🔄 RESET PRIORIDAD MÁXIMA
 if (textLower === "reset" || textLower === "reiniciar") {
