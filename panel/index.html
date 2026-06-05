@@ -751,6 +751,9 @@ async function authFetch(url, options = {}) {
 
   return res;
 }
+
+window.authFetch = authFetch;
+
     function formatCurrency(value) {
       return new Intl.NumberFormat("es-MX", {
         style: "currency",
