@@ -351,6 +351,29 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
+if (!business) {
+  return res.sendStatus(200);
+}
+
+if (!business.active) {
+  console.log("⛔ Negocio desactivado:", business.id);
+  return res.sendStatus(200);
+}
+
+const subscriptionActive = await isSubscriptionActive(business.id);
+
+if (!subscriptionActive) {
+  console.log("⛔ Suscripción vencida o inactiva:", business.id);
+
+  await enviarWhatsApp(
+    from,
+    "⚠️ El servicio de este negocio se encuentra suspendido temporalmente. Por favor contacta al administrador para reactivarlo.",
+    business
+  );
+
+  return res.sendStatus(200);
+}
+
 // 🔒 CONTROL DE SUSCRIPCIÓN
 if (!business.active) {
   console.log("⛔ Negocio inactivo:", business.name);
@@ -1606,6 +1629,47 @@ if (!data.access_token) {
 
   return data;
 }
+
+async function isSubscriptionActive(businessId) {
+  const { data: subscription, error } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("❌ Error revisando suscripción:", error);
+    return false;
+  }
+
+  if (!subscription) {
+    console.log("⚠️ Negocio sin suscripción:", businessId);
+    return false;
+  }
+
+  if (subscription.status !== "active") {
+    console.log("⚠️ Suscripción inactiva:", subscription.status);
+    return false;
+  }
+
+  if (subscription.next_billing_date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const nextBilling = new Date(subscription.next_billing_date);
+    nextBilling.setHours(0, 0, 0, 0);
+
+    if (nextBilling < today) {
+      console.log("⚠️ Suscripción vencida:", subscription.next_billing_date);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 async function getOrCreateCustomer(businessId, whatsapp) {
   const { data: existing } = await supabase
