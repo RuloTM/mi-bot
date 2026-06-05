@@ -824,6 +824,36 @@ function formatDate(dateString) {
 
 window.updateStatus = updateStatus;
 
+async function rejectPayment(orderId) {
+  try {
+    const confirmar = confirm("¿Seguro que quieres rechazar este comprobante?");
+
+    if (!confirmar) return;
+
+    const res = await authFetch(`/orders/${orderId}/payment-status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ payment_status: "rejected" })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "No se pudo rechazar el pago");
+    }
+
+    await loadOrders();
+  } catch (error) {
+    console.error("Error rechazando pago:", error);
+    alert(error.message || "Error rechazando pago");
+  }
+}
+
+window.rejectPayment = rejectPayment;
+
+
+
     async function loadMessages(customerId) {
       try {
         const res = await authFetch(`/customers/${customerId}/messages`);
@@ -913,6 +943,13 @@ window.updateStatus = updateStatus;
           const whatsapp = order.customers?.whatsapp || "";
           const waLink = whatsapp ? `https://wa.me/${whatsapp}` : "#";
 
+console.log("ORDER PANEL:", {
+  id: order.id,
+  status: order.status,
+  payment_status: order.payment_status,
+  receipt_url: order.receipt_url
+});
+
           const row = document.createElement("tr");
           row.style.cursor = "pointer";
           row.onclick = () => loadMessages(order.customer_id);
@@ -943,6 +980,24 @@ window.updateStatus = updateStatus;
       : `<button class="btn-disabled" disabled>Sin comprobante</button>`
   }
 
+${order.receipt_url && order.payment_status === "pending_validation"
+  ? `<button
+      class="btn-paid"
+      onclick="event.stopPropagation(); updateStatus('${order.id}', 'paid')"
+    >
+      ✅ Aprobar pago
+    </button>
+
+    <button
+      class="btn-reject"
+      onclick="event.stopPropagation(); rejectPayment('${order.id}')"
+    >
+      ❌ Rechazar
+    </button>`
+  : ""
+}
+
+
   <button
     class="btn-paid"
     ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "disabled" : ""}
@@ -950,6 +1005,11 @@ window.updateStatus = updateStatus;
   >
     ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "✓ Pagado" : "Pagado"}
   </button>
+
+
+
+
+
 
   <button
     class="btn-shipped"
