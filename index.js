@@ -1578,10 +1578,6 @@ return res.sendStatus(200);
 }
 });
 
-app.post("/save-whatsapp-connection", async (req, res) => {
-  console.log("📲 CONEXIÓN WHATSAPP META:", req.body);
-  res.json({ ok: true });
-});
 
 async function getBusiness(phoneNumberId) {
   const { data, error } = await supabase
@@ -3946,6 +3942,16 @@ app.post("/save-whatsapp-connection", async (req, res) => {
         error: error.message
       });
     }
+
+await supabaseAdmin
+  .from("businesses")
+  .update({
+    phone_number_id,
+    access_token,
+    waba_id,
+    updated_at: new Date().toISOString()
+  })
+  .eq("id", profile.business_id);
 
     return res.json({
       ok: true,
