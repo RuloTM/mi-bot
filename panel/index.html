@@ -369,6 +369,21 @@ button:disabled {
           <div class="label">Usuario</div>
           <div id="userEmail" class="value">-</div>
 
+<div class="user-box" id="subscriptionBox">
+  <div class="label">Plan</div>
+  <div id="subscriptionPlan" class="value">-</div>
+
+  <div class="label">Mensualidad</div>
+  <div id="subscriptionPrice" class="value">-</div>
+
+  <div class="label">Estado</div>
+  <div id="subscriptionStatus" class="value">-</div>
+
+  <div class="label">Próximo cobro</div>
+  <div id="subscriptionNextBilling" class="value">-</div>
+</div>
+
+
           <div class="label">Business ID</div>
           <div id="businessId" class="value">-</div>
 
@@ -1009,11 +1024,6 @@ ${order.receipt_url && order.payment_status === "pending_validation"
     ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "✓ Pagado" : "Pagado"}
   </button>
 
-
-
-
-
-
   <button
     class="btn-shipped"
     ${order.status === "shipped" || order.status === "completed" ? "disabled" : ""}
@@ -1047,6 +1057,33 @@ ${order.receipt_url && order.payment_status === "pending_validation"
         alert(error.message || "Error cargando pedidos");
       }
     }
+
+async function loadSubscription() {
+  try {
+    const res = await authFetch("/subscription");
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    if (!data.subscription) return;
+
+    document.getElementById("subscriptionPlan").textContent =
+      data.subscription.plan_name || "-";
+
+    document.getElementById("subscriptionPrice").textContent =
+      "$" + Number(data.subscription.monthly_price || 0).toLocaleString("es-MX");
+
+    document.getElementById("subscriptionStatus").textContent =
+      data.subscription.status || "-";
+
+    document.getElementById("subscriptionNextBilling").textContent =
+      data.subscription.next_billing_date || "-";
+  } catch (err) {
+    console.error("Error cargando suscripción:", err);
+  }
+}
+
 
 async function loadWhatsAppStatus() {
 
@@ -1211,6 +1248,7 @@ async function initPanel() {
 
     await loadMe();
     await loadOrders();
+    await loadSubscription();
     showApp();
     loadWhatsAppStatus();
     loadBusinessConfig();
@@ -1248,6 +1286,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       currentAccessToken = session.access_token;
       await loadMe();
       await loadOrders();
+      await loadSubscription();
       showApp();
       loadWhatsAppStatus();
       loadBusinessConfig();
