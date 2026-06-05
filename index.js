@@ -2985,6 +2985,29 @@ app.get("/me", requireAuth, async (req, res) => {
   });
 });
 
+app.get("/subscription", requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("business_id", req.businessId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({
+      subscription: data || null
+    });
+  } catch (err) {
+    console.error("Error obteniendo suscripción:", err);
+    res.status(500).json({ error: "Error obteniendo suscripción" });
+  }
+});
+
 app.get("/orders", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -3003,6 +3026,8 @@ app.get("/orders", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Error obteniendo pedidos" });
   }
 });
+
+
 
 // 🔧 Obtener configuración del negocio
 app.get("/business/config", requireAuth, async (req, res) => {
@@ -3023,7 +3048,7 @@ app.get("/business/config", requireAuth, async (req, res) => {
         active,
         payment_enabled,
         payment_mode,
-        payment_link_url
+        payment_link_url,
         bank_name,
         account_holder,
         clabe 
