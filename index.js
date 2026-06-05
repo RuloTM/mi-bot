@@ -1710,6 +1710,7 @@ async function saveCustomerState(businessId, customerId, state) {
     producto_seleccionado: state.productoSeleccionado || null,
     catalogo_actual: state.catalogoActual || [],
     categorias_actuales: state.categoriasActuales || [],
+    order_id: state.order_id || null,
     updated_at: new Date().toISOString()
   };
 
