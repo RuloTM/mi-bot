@@ -286,6 +286,25 @@ button:disabled {
       }
     }
 
+.btn-receipt {
+  background: #6366f1;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.btn-disabled {
+  background: #e5e7eb;
+  color: #6b7280;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: not-allowed;
+}
 
 
   </style>
@@ -910,9 +929,20 @@ window.updateStatus = updateStatus;
             <td>${formatDate(order.created_at)}</td>
             <td>
               
-
-
 <div class="actions">
+  ${
+    order.receipt_url
+      ? `<a
+          class="action-link btn-receipt"
+          href="${order.receipt_url}"
+          target="_blank"
+          onclick="event.stopPropagation()"
+        >
+          👁 Ver comprobante
+        </a>`
+      : `<button class="btn-disabled" disabled>Sin comprobante</button>`
+  }
+
   <button
     class="btn-paid"
     ${order.status === "paid" || order.status === "shipped" || order.status === "completed" ? "disabled" : ""}
@@ -938,6 +968,7 @@ window.updateStatus = updateStatus;
     WhatsApp
   </a>
 </div>
+
             </td>
           `;
 
