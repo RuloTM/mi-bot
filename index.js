@@ -377,20 +377,6 @@ if (!business.active) {
     let state = await getCustomerState(business.id, customer.id);
     console.log("🧠 STATE CARGADO:", JSON.stringify(state));
 
-if (message.type === "image" && state.etapa === "esperando_comprobante") {
-  console.log("📸 Comprobante recibido");
-
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    "📸 Comprobante recibido. Un asesor verificará tu pago y te confirmará en breve ✅"
-  );
-
-  return res.sendStatus(200);
-}
-
 
     if (!state || typeof state !== "object") {
       state = {
@@ -403,19 +389,64 @@ if (message.type === "image" && state.etapa === "esperando_comprobante") {
 
     state.perfil = state.perfil || {};
 
+console.log("🖼️ TIPO DE MENSAJE:", message.type);
+
 if (message.type === "image" && state.etapa === "esperando_comprobante") {
-  console.log("📸 Comprobante recibido");
+  try {
+    console.log("📸 Comprobante recibido");
 
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    "📸 Comprobante recibido. Un asesor verificará tu pago y te confirmará en breve ✅"
-  );
+    const mediaId = message.image?.id;
+    const orderId = state.order_id;
 
-  return res.sendStatus(200);
+    if (!mediaId || !orderId) {
+      console.log("⚠️ Falta mediaId u orderId", { mediaId, orderId });
+
+      await replyAndPersist(
+        business,
+        customer,
+        state,
+        from,
+        "Recibí tu imagen, pero no pude asociarla al pedido. Un asesor te apoyará 🙏"
+      );
+
+      return res.sendStatus(200);
+    }
+
+    const mediaUrl = await getWhatsAppMediaUrl(mediaId, business);
+    const buffer = await downloadWhatsAppMedia(mediaUrl, business);
+    const receiptUrl = await uploadReceiptToSupabase(
+      buffer,
+      business.id,
+      orderId
+    );
+
+    await savePaymentReceipt(orderId, receiptUrl);
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "📸 Comprobante recibido. Un asesor verificará tu pago y te confirmará en breve ✅"
+    );
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error("❌ Error procesando comprobante:", error.message);
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "Recibí tu comprobante, pero hubo un problema guardándolo. Un asesor lo revisará 🙏"
+    );
+
+    return res.sendStatus(200);
+  }
 }
+
+
     if (!state.etapa) {
   state.perfil = extractPerfil(state.perfil, text);
 }
@@ -2667,7 +2698,80 @@ async function enviarWhatsApp(to, texto, business) {
   }
 }
 
+async function getWhatsAppMediaUrl(mediaId, business) {
+  const token = business.access_token;
 
+  const response = await axios.get(
+    `https://graph.facebook.com/v19.0/${mediaId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  return response.data.url;
+}
+
+async function downloadWhatsAppMedia(mediaUrl, business) {
+  const token = business.access_token;
+
+  const response = await axios.get(mediaUrl, {
+    responseType: "arraybuffer",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return Buffer.from(response.data);
+}
+
+async function uploadReceiptToSupabase(buffer, businessId, orderId) {
+  const filePath = `${businessId}/${orderId}-${Date.now()}.jpg`;
+
+  const { error } = await supabase.storage
+    .from("payment-receipts")
+    .upload(filePath, buffer, {
+      contentType: "image/jpeg",
+      upsert: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage
+    .from("payment-receipts")
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+	
+async function savePaymentReceipt(orderId, imageUrl) {
+  const { error } = await supabase
+    .from("payment_receipts")
+    .insert({
+      order_id: orderId,
+      image_url: imageUrl,
+      status: "pending"
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { error: orderError } = await supabase
+    .from("orders")
+    .update({
+      receipt_url: imageUrl,
+      payment_status: "pending_validation"
+    })
+    .eq("id", orderId);
+
+  if (orderError) {
+    throw orderError;
+  }
+}
 
 
 async function enviarImagenWhatsApp(to, producto, business) {
