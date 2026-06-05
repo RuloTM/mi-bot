@@ -396,6 +396,8 @@ if (message.type === "image" && state.etapa === "esperando_comprobante") {
     console.log("📸 Comprobante recibido");
 
     const mediaId = message.image?.id;
+
+    console.log("🧾 ORDER ID EN STATE:", state.order_id);
     const orderId = state.order_id;
 
     if (!mediaId || !orderId) {
@@ -1660,7 +1662,6 @@ function getEmptyState() {
   };
 }
 
-
 async function getCustomerState(businessId, customerId) {
   const { data, error } = await supabase
     .from("customer_states")
@@ -1670,36 +1671,38 @@ async function getCustomerState(businessId, customerId) {
     .maybeSingle();
 
   if (error) {
-  console.error("❌ Error obteniendo customer_state:", error);
-  return {
-    etapa: null,
-    perfil: {},
-    productoSeleccionado: null,
-    catalogoActual: []
-  };
-}
+    console.error("❌ Error obteniendo customer_state:", error);
+
+    return {
+      etapa: null,
+      perfil: {},
+      productoSeleccionado: null,
+      catalogoActual: [],
+      categoriasActuales: [],
+      order_id: null
+    };
+  }
 
   if (!data) {
-  return {
-    etapa: null,
-    perfil: {},
-    productoSeleccionado: null,
-    catalogoActual: [],
-    categoriasActuales: []
-
-  };
-}
+    return {
+      etapa: null,
+      perfil: {},
+      productoSeleccionado: null,
+      catalogoActual: [],
+      categoriasActuales: [],
+      order_id: null
+    };
+  }
 
   return {
     etapa: data.etapa || null,
     perfil: data.perfil || {},
     productoSeleccionado: data.producto_seleccionado || null,
     catalogoActual: data.catalogo_actual || [],
-    categoriasActuales: data.categorias_actuales || []
+    categoriasActuales: data.categorias_actuales || [],
+    order_id: data.order_id || null
   };
 }
-
-
 
 async function saveCustomerState(businessId, customerId, state) {
   const payload = {
