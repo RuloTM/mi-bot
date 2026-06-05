@@ -3192,7 +3192,7 @@ app.post("/orders/:id/status", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "No tienes acceso a este pedido" });
     }
 
-if (order.status === status) {
+if (order.status === status && status !== "paid") {
   return res.json({
     ok: true,
     order,
@@ -3200,13 +3200,19 @@ if (order.status === status) {
   });
 }
 
-    const { data, error } = await supabase
-      .from("orders")
-      .update({ status })
-      .eq("id", orderId)
-      .eq("business_id", req.businessId)
-      .select()
-      .single();
+const updatePayload = { status };
+
+if (status === "paid") {
+  updatePayload.payment_status = "paid";
+}
+
+const { data, error } = await supabase
+  .from("orders")
+  .update(updatePayload)
+  .eq("id", orderId)
+  .eq("business_id", req.businessId)
+  .select()
+  .single();
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -3269,6 +3275,89 @@ Gracias por tu compra 🙌`;
   } catch (err) {
     console.error("Error actualizando estado:", err);
     res.status(500).json({ error: "Error actualizando estado" });
+  }
+});
+
+app.post("/orders/:id/payment-status", requireAuth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { payment_status } = req.body;
+
+    const allowedStatuses = ["pending", "pending_validation", "paid", "rejected"];
+
+    if (!allowedStatuses.includes(payment_status)) {
+      return res.status(400).json({ error: "Estado de pago inválido" });
+    }
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        business_id,
+        customer_id,
+        product,
+        full_name,
+        total,
+        status,
+        payment_status,
+        customers (
+          whatsapp
+        )
+      `)
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    if (order.business_id !== req.businessId) {
+      return res.status(403).json({ error: "No tienes acceso a este pedido" });
+    }
+
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ payment_status })
+      .eq("id", orderId)
+      .eq("business_id", req.businessId)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const { data: business, error: businessError } = await supabase
+      .from("businesses")
+      .select("phone_number_id, access_token")
+      .eq("id", req.businessId)
+      .single();
+
+    if (!businessError && business) {
+      const customerPhone = order.customers?.whatsapp;
+
+      if (customerPhone && business.phone_number_id && business.access_token) {
+        let message = "";
+
+        if (payment_status === "rejected") {
+          message = `⚠️ No pudimos validar tu comprobante.
+
+Por favor revisa tu pago y envía nuevamente el comprobante.
+
+Producto: ${order.product || "tu producto"}
+Total: $${Number(order.total || 0).toFixed(2)} MXN`;
+        }
+
+        if (message) {
+          await enviarWhatsApp(customerPhone, message, business);
+        }
+      }
+    }
+
+    res.json({ ok: true, order: data });
+  } catch (err) {
+    console.error("❌ Error actualizando payment_status:", err);
+    res.status(500).json({ error: "Error actualizando estado de pago" });
   }
 });
 
