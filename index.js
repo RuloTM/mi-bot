@@ -3072,6 +3072,54 @@ app.get("/subscription", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/subscription/status", requireAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = ["active", "suspended", "cancelled"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: "Estado de suscripción inválido" });
+    }
+
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .update({
+        status,
+        updated_at: new Date().toISOString()
+      })
+   
+.eq("business_id", req.businessId)
+.order("created_at", { ascending: false })
+.limit(1)
+.select()
+.single();  
+
+
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const businessActive = status === "active";
+
+    await supabase
+      .from("businesses")
+      .update({ active: businessActive })
+      .eq("id", req.businessId);
+
+    res.json({
+      ok: true,
+      subscription: data,
+      business_active: businessActive
+    });
+
+  } catch (err) {
+    console.error("Error actualizando suscripción:", err);
+    res.status(500).json({ error: "Error actualizando suscripción" });
+  }
+});
+
 app.get("/orders", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase

@@ -365,33 +365,44 @@ button:disabled {
 </div>
         </div>
 
-        <div class="user-box">
-          <div class="label">Usuario</div>
-          <div id="userEmail" class="value">-</div>
+<div class="user-box">
+  <div class="label">Usuario</div>
+  <div id="userEmail" class="value">-</div>
 
-<div class="user-box" id="subscriptionBox">
-  <div class="label">Plan</div>
-  <div id="subscriptionPlan" class="value">-</div>
+  <div class="user-box" id="subscriptionBox">
+    <div class="label">Plan</div>
+    <div id="subscriptionPlan" class="value">-</div>
 
-  <div class="label">Mensualidad</div>
-  <div id="subscriptionPrice" class="value">-</div>
+    <div class="label">Mensualidad</div>
+    <div id="subscriptionPrice" class="value">-</div>
 
-  <div class="label">Estado</div>
-  <div id="subscriptionStatus" class="value">-</div>
+    <div class="label">Estado</div>
+    <div id="subscriptionStatus" class="value">-</div>
 
-  <div class="label">Próximo cobro</div>
-  <div id="subscriptionNextBilling" class="value">-</div>
+    <div class="label">Próximo cobro</div>
+    <div id="subscriptionNextBilling" class="value">-</div>
+
+    <button
+      id="toggleSubscriptionBtn"
+      class="btn-logout"
+      type="button"
+      onclick="toggleSubscriptionStatus()"
+    >
+      Cambiar estado
+    </button>
+  </div>
+
+  <div class="label">Business ID</div>
+  <div id="businessId" class="value">-</div>
+
+  <div class="label">Rol</div>
+  <div id="userRole" class="value">-</div>
+
+  <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
 </div>
 
 
-          <div class="label">Business ID</div>
-          <div id="businessId" class="value">-</div>
 
-          <div class="label">Rol</div>
-          <div id="userRole" class="value">-</div>
-
-          <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
-        </div>
       </div>
 
       <div class="summary">
@@ -1058,6 +1069,8 @@ ${order.receipt_url && order.payment_status === "pending_validation"
       }
     }
 
+let currentSubscriptionStatus = null;
+
 async function loadSubscription() {
   try {
     const res = await authFetch("/subscription");
@@ -1067,6 +1080,8 @@ async function loadSubscription() {
     const data = await res.json();
 
     if (!data.subscription) return;
+
+    currentSubscriptionStatus = data.subscription.status;
 
     document.getElementById("subscriptionPlan").textContent =
       data.subscription.plan_name || "-";
@@ -1079,11 +1094,70 @@ async function loadSubscription() {
 
     document.getElementById("subscriptionNextBilling").textContent =
       data.subscription.next_billing_date || "-";
+
+    const btn = document.getElementById("toggleSubscriptionBtn");
+
+    if (btn) {
+      btn.textContent =
+        data.subscription.status === "active"
+          ? "Suspender servicio"
+          : "Reactivar servicio";
+    }
+
   } catch (err) {
     console.error("Error cargando suscripción:", err);
   }
 }
 
+async function toggleSubscriptionStatus() {
+  try {
+
+    const newStatus =
+      currentSubscriptionStatus === "active"
+        ? "suspended"
+        : "active";
+
+    if (
+      !confirm(
+        newStatus === "suspended"
+          ? "¿Suspender este negocio?"
+          : "¿Reactivar este negocio?"
+      )
+    ) {
+      return;
+    }
+
+    const res = await authFetch("/subscription/status", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        status: newStatus
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Error actualizando suscripción");
+    }
+
+    await loadSubscription();
+
+    alert(
+      newStatus === "suspended"
+        ? "Negocio suspendido correctamente"
+        : "Negocio reactivado correctamente"
+    );
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Error");
+  }
+}
+
+window.toggleSubscriptionStatus = toggleSubscriptionStatus;
 
 async function loadWhatsAppStatus() {
 
