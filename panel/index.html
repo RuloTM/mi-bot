@@ -1088,14 +1088,6 @@ async function loadSubscription() {
     document.getElementById("subscriptionNextBilling").textContent =
       data.subscription.next_billing_date || "-";
 
-    const btn = document.getElementById("toggleSubscriptionBtn");
-
-    if (btn) {
-      btn.textContent =
-        data.subscription.status === "active"
-          ? "Suspender servicio"
-          : "Reactivar servicio";
-    }
 
   } catch (err) {
     console.error("Error cargando suscripción:", err);
@@ -1103,35 +1095,7 @@ async function loadSubscription() {
 }
 
 
-    const res = await authFetch("/subscription/status", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        status: newStatus
-      })
-    });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Error actualizando suscripción");
-    }
-
-    await loadSubscription();
-
-    alert(
-      newStatus === "suspended"
-        ? "Negocio suspendido correctamente"
-        : "Negocio reactivado correctamente"
-    );
-
-  } catch (err) {
-    console.error(err);
-    alert(err.message || "Error");
-  }
-}
 
 async function loadWhatsAppStatus() {
 
