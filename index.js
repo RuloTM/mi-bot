@@ -471,6 +471,24 @@ if (message.type === "image" && state.etapa === "esperando_comprobante") {
   }
 }
 
+if (state.etapa === "esperando_comprobante") {
+  const producto = state.perfil?.producto || "tu producto";
+  const total = state.perfil?.total || "";
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `📸 Estoy esperando tu comprobante de pago.
+
+Por favor envíame una imagen o captura del comprobante para continuar con tu pedido.
+
+Producto: ${producto}`
+  );
+
+  return res.sendStatus(200);
+}
 
     if (!state.etapa) {
   state.perfil = extractPerfil(state.perfil, text);
