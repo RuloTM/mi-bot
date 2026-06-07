@@ -773,6 +773,71 @@ const wantsCatalog =
   textLower.includes("menu") ||
   textLower.includes("menú");
 
+const wantsMoreCatalog =
+  textLower === "mas" ||
+  textLower === "más" ||
+  textLower.includes("ver mas") ||
+  textLower.includes("ver más") ||
+  textLower.includes("mostrar mas") ||
+  textLower.includes("mostrar más") ||
+  textLower.includes("siguiente");
+
+if (wantsMoreCatalog && Array.isArray(state.catalogoCompleto)) {
+
+  const pageSize = 6;
+
+  state.catalogPage = Number(state.catalogPage || 0) + 1;
+
+  const start = state.catalogPage * pageSize;
+  const end = start + pageSize;
+
+  const pagina = state.catalogoCompleto.slice(start, end);
+
+  if (!pagina.length) {
+
+    await replyAndPersist(
+      business,
+      customer,
+      state,
+      from,
+      "🙌 Ya te mostré todos los productos disponibles."
+    );
+
+    return res.sendStatus(200);
+  }
+
+  state.catalogoActual = pagina;
+
+  await saveCustomerState(
+    business.id,
+    customer.id,
+    state
+  );
+
+  const opcionesTexto = pagina
+    .map(
+      (p, i) =>
+        `${start + i + 1}️⃣ ${p.name} - $${Number(p.price || 0).toFixed(2)} MXN`
+    )
+    .join("\n");
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    `📦 Más productos disponibles:
+
+${opcionesTexto}
+
+✍️ También puedes escribir el nombre del producto.
+
+➡️ Escribe "más" para seguir viendo productos.`
+  );
+
+  return res.sendStatus(200);
+}
+
 if (wantsCatalog && !wantsOptions) {
   const products = await getBusinessProducts(business.id);
   const disponibles = products.filter(p => Number(p.stock || 0) > 0);
@@ -850,8 +915,9 @@ return queryWords.some(word => searchable.includes(word));
   });
 
   const disponibles = matches.filter(p => Number(p.stock || 0) > 0);
+  state.catalogoCompleto = disponibles;
+  state.catalogPage = 0;
   state.catalogoActual = disponibles.slice(0, 6);
-
 
 console.log(
   "📦 CATÁLOGO GUARDADO:",
@@ -890,7 +956,11 @@ Responde con:
 
 ${opcionesTexto}
 
-✍️ También puedes escribir el nombre del producto.`
+✍️ También puedes escribir el nombre del producto.${
+    disponibles.length > 6
+      ? '\n\n➡️ Escribe "más" para ver más productos.'
+      : ""
+  }`
 );
 
 const catalogoUrl =
