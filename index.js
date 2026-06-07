@@ -565,6 +565,10 @@ state.productoSeleccionado = null;
 state.perfil.producto = null;
 state.perfil.product_id = null;
 
+state.catalogoCompleto = disponibles;
+state.catalogPage = 0;
+state.catalogoActual = disponibles.slice(0, 6);
+
     state.etapa = null;
 
     await saveCustomerState(
@@ -581,7 +585,7 @@ state.perfil.product_id = null;
         )
         .join("\n");
 
-    await replyAndPersist(
+   await replyAndPersist(
   business,
   customer,
   state,
@@ -590,7 +594,11 @@ state.perfil.product_id = null;
 
 ${opcionesTexto}
 
-👉 Responde con el número del producto que te interesa.`
+👉 Responde con el número del producto que te interesa.${
+    disponibles.length > 6
+      ? '\n\n➡️ Escribe "más" para ver más productos.'
+      : ""
+  }`
 );
 
     const catalogoUrl =
