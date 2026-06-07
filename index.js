@@ -3448,9 +3448,15 @@ app.post("/orders/:id/payment-status", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "No tienes acceso a este pedido" });
     }
 
-    const { data, error } = await supabase
-      .from("orders")
-      .update({ payment_status })
+    const updatePayload = { payment_status };
+
+if (payment_status === "rejected") {
+  updatePayload.status = "pending";
+}
+
+const { data, error } = await supabase
+  .from("orders")
+  .update(updatePayload)
       .eq("id", orderId)
       .eq("business_id", req.businessId)
       .select()

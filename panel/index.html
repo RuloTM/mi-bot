@@ -382,14 +382,7 @@ button:disabled {
     <div class="label">Próximo cobro</div>
     <div id="subscriptionNextBilling" class="value">-</div>
 
-    <button
-      id="toggleSubscriptionBtn"
-      class="btn-logout"
-      type="button"
-      onclick="toggleSubscriptionStatus()"
-    >
-      Cambiar estado
-    </button>
+    
   </div>
 
   <div class="label">Business ID</div>
@@ -1109,23 +1102,6 @@ async function loadSubscription() {
   }
 }
 
-async function toggleSubscriptionStatus() {
-  try {
-
-    const newStatus =
-      currentSubscriptionStatus === "active"
-        ? "suspended"
-        : "active";
-
-    if (
-      !confirm(
-        newStatus === "suspended"
-          ? "¿Suspender este negocio?"
-          : "¿Reactivar este negocio?"
-      )
-    ) {
-      return;
-    }
 
     const res = await authFetch("/subscription/status", {
       method: "POST",
@@ -1156,8 +1132,6 @@ async function toggleSubscriptionStatus() {
     alert(err.message || "Error");
   }
 }
-
-window.toggleSubscriptionStatus = toggleSubscriptionStatus;
 
 async function loadWhatsAppStatus() {
 
