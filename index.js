@@ -392,27 +392,49 @@ if (!business.active) {
   return res.sendStatus(200);
 }
 
-    const customer = await getOrCreateCustomer(business.id, from);
-    if (!customer) return res.sendStatus(200);
+const customer = await getOrCreateCustomer(business.id, from);
+if (!customer) return res.sendStatus(200);
 
-    await saveMessage(business.id, customer.id, "user", text);
+await saveMessage(business.id, customer.id, "user", text);
 
-    let state = await getCustomerState(business.id, customer.id);
-    console.log("🧠 STATE CARGADO:", JSON.stringify(state));
+let state = await getCustomerState(business.id, customer.id);
+console.log("🧠 STATE CARGADO:", JSON.stringify(state));
 
+if (!state || typeof state !== "object") {
+  state = getEmptyState();
+}
 
-    if (!state || typeof state !== "object") {
-      state = {
-        etapa: null,
-        perfil: {},
-        carrito: [],
-        productoSeleccionado: null
-      };
-    }
+state.perfil = state.perfil || {};
 
-    state.perfil = state.perfil || {};
+const textLower = String(text || "").toLowerCase().trim();
 
 console.log("🖼️ TIPO DE MENSAJE:", message.type);
+
+// 🔄 RESET MANUAL DEL FLUJO
+if (
+  textLower === "reset" ||
+  textLower === "reiniciar" ||
+  textLower === "empezar de nuevo" ||
+  textLower === "nuevo pedido"
+) {
+  console.log("🧹 Reset manual solicitado");
+
+  await clearCustomerState(business.id, customer.id);
+
+  state = getEmptyState();
+
+  await saveCustomerState(business.id, customer.id, state);
+
+  await replyAndPersist(
+    business,
+    customer,
+    state,
+    from,
+    "Listo ✅ reinicié tu conversación. Puedes escribir *catálogo* para empezar de nuevo."
+  );
+
+  return res.sendStatus(200);
+}
 
 if (message.type === "image" && state.etapa === "esperando_comprobante") {
   try {
@@ -471,7 +493,15 @@ if (message.type === "image" && state.etapa === "esperando_comprobante") {
   }
 }
 
-if (state.etapa === "esperando_comprobante") {
+if (
+  state.etapa === "esperando_comprobante" &&
+  textLower !== "reset" &&
+  textLower !== "reiniciar" &&
+  textLower !== "nuevo pedido" &&
+  textLower !== "empezar de nuevo"
+) {
+
+
   const producto = state.perfil?.producto || "tu producto";
   const total = state.perfil?.total || "";
 
@@ -494,7 +524,6 @@ Producto: ${producto}`
   state.perfil = extractPerfil(state.perfil, text);
 }
 
-    const textLower = String(text || "").toLowerCase().trim();
     console.log("🧪 TEST CONFIRMO BLOQUE:", textLower);
 
 // 📂 Selección de categoría
