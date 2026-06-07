@@ -3357,6 +3357,11 @@ if (status === "paid") {
   updatePayload.payment_status = "paid";
 }
 
+console.log("STATUS RECIBIDO:", status);
+
+console.log("UPDATE PAYLOAD:", updatePayload);
+
+
 const { data, error } = await supabase
   .from("orders")
   .update(updatePayload)
