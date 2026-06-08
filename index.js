@@ -865,19 +865,25 @@ if (wantsMoreCatalog && catalogoCompletoActual.length) {
     )
     .join("\n");
 
-  await replyAndPersist(
-    business,
-    customer,
-    state,
-    from,
-    `📦 Más productos disponibles:
+  const quedanMas = end < catalogoCompletoActual.length;
+
+let mensaje = `📦 Más productos disponibles:
 
 ${opcionesTexto}
 
-✍️ También puedes escribir el nombre del producto.
+✍️ También puedes escribir el nombre del producto.`;
 
-➡️ Escribe "más" para seguir viendo productos.`
-  );
+if (quedanMas) {
+  mensaje += '\n\n➡️ Escribe "más" para seguir viendo productos.';
+}
+
+await replyAndPersist(
+  business,
+  customer,
+  state,
+  from,
+  mensaje
+);
 
   return res.sendStatus(200);
 }
