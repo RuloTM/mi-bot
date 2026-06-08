@@ -120,6 +120,10 @@ tr {
       background: #f9fafb;
     }
 
+
+tbody tr.selected-row {
+  background: #eef6ff !important;
+}
     .status {
       display: inline-block;
       padding: 6px 10px;
@@ -986,7 +990,15 @@ console.log("ORDER PANEL:", {
 
           const row = document.createElement("tr");
           row.style.cursor = "pointer";
-          row.onclick = () => loadMessages(order.customer_id);
+          row.onclick = () => {
+  document
+    .querySelectorAll("#ordersTable tr")
+    .forEach(r => r.classList.remove("selected-row"));
+
+  row.classList.add("selected-row");
+
+  loadMessages(order.customer_id);
+};
 
           row.innerHTML = `
             <td>${order.full_name || ""}</td>
