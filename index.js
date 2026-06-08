@@ -556,17 +556,15 @@ if (
         ) === categoria
     );
 
-    state.catalogoActual =
-      disponibles.slice(0, 6);
-
-
-// 🧹 Limpiar producto anterior
+   // 🧹 Limpiar producto anterior
 state.productoSeleccionado = null;
 state.perfil.producto = null;
 state.perfil.product_id = null;
 
 state.catalogoCompleto = disponibles;
+state.catalogo_completo = disponibles;
 state.catalogPage = 0;
+state.catalog_page = 0;
 state.catalogoActual = disponibles.slice(0, 6);
 
     state.etapa = null;
@@ -819,16 +817,25 @@ const wantsMoreCatalog =
   textLower.includes("mostrar más") ||
   textLower.includes("siguiente");
 
-if (wantsMoreCatalog && Array.isArray(state.catalogoCompleto)) {
+const catalogoCompletoActual =
+  Array.isArray(state.catalogoCompleto)
+    ? state.catalogoCompleto
+    : Array.isArray(state.catalogo_completo)
+      ? state.catalogo_completo
+      : [];
 
-  const pageSize = 6;
+if (wantsMoreCatalog && catalogoCompletoActual.length) {
+
+
+ const pageSize = 6;
 
   state.catalogPage = Number(state.catalogPage || 0) + 1;
 
   const start = state.catalogPage * pageSize;
   const end = start + pageSize;
 
-  const pagina = state.catalogoCompleto.slice(start, end);
+  const pagina = catalogoCompletoActual.slice(start, end);
+  
 
   if (!pagina.length) {
 
@@ -1859,48 +1866,57 @@ async function getCustomerState(businessId, customerId) {
     console.error("❌ Error obteniendo customer_state:", error);
 
     return {
-      etapa: null,
-      perfil: {},
-      productoSeleccionado: null,
-      catalogoActual: [],
-      categoriasActuales: [],
-      order_id: null
-    };
-  }
-
-  if (!data) {
-    return {
-      etapa: null,
-      perfil: {},
-      productoSeleccionado: null,
-      catalogoActual: [],
-      categoriasActuales: [],
-      order_id: null
-    };
-  }
-
-  return {
-    etapa: data.etapa || null,
-    perfil: data.perfil || {},
-    productoSeleccionado: data.producto_seleccionado || null,
-    catalogoActual: data.catalogo_actual || [],
-    categoriasActuales: data.categorias_actuales || [],
-    order_id: data.order_id || null
+    etapa: null,
+    perfil: {},
+    productoSeleccionado: null,
+    catalogoActual: [],
+    catalogoCompleto: [],
+    catalogPage: 0,
+    categoriasActuales: [],
+    order_id: null
   };
 }
 
+  if (!data) {
+    return {
+  etapa: null,
+  perfil: {},
+  productoSeleccionado: null,
+  catalogoActual: [],
+  catalogoCompleto: [],
+  catalogPage: 0,
+  categoriasActuales: [],
+  order_id: null
+};
+  }
+
+  return {
+  etapa: data.etapa || null,
+  perfil: data.perfil || {},
+  productoSeleccionado: data.producto_seleccionado || null,
+  catalogoActual: data.catalogo_actual || [],
+  catalogoCompleto: data.catalogo_completo || [],
+  catalogPage: data.catalog_page || 0,
+  categoriasActuales: data.categorias_actuales || [],
+  order_id: data.order_id || null
+};
+}
+
 async function saveCustomerState(businessId, customerId, state) {
-  const payload = {
-    business_id: businessId,
-    customer_id: customerId,
-    etapa: state.etapa || null,
-    perfil: state.perfil || {},
-    producto_seleccionado: state.productoSeleccionado || null,
-    catalogo_actual: state.catalogoActual || [],
-    categorias_actuales: state.categoriasActuales || [],
-    order_id: state.order_id || null,
-    updated_at: new Date().toISOString()
-  };
+  
+const payload = {
+  business_id: businessId,
+  customer_id: customerId,
+  etapa: state.etapa || null,
+  perfil: state.perfil || {},
+  producto_seleccionado: state.productoSeleccionado || null,
+  catalogo_actual: state.catalogoActual || [],
+  catalogo_completo: state.catalogoCompleto || state.catalogo_completo || [],
+  catalog_page: state.catalogPage || state.catalog_page || 0,
+  categorias_actuales: state.categoriasActuales || [],
+  order_id: state.order_id || null,
+  updated_at: new Date().toISOString()
+};
 
   const { error } = await supabase
     .from("customer_states")
