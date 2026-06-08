@@ -974,9 +974,6 @@ async function loadMessages(customerId) {
           totalSales += Number(order.total || 0);
           if (order.status === "pending") totalPending++;
 
-          const whatsapp = order.customers?.whatsapp || "";
-          const waLink = whatsapp ? `https://wa.me/${whatsapp}` : "#";
-
 console.log("ORDER PANEL:", {
   id: order.id,
   status: order.status,
@@ -1048,14 +1045,6 @@ ${order.receipt_url && order.payment_status === "pending_validation"
     ${order.status === "shipped" || order.status === "completed" ? "✓ Enviado" : "Enviado"}
   </button>
 
-  <a
-    class="action-link btn-wa"
-    href="${waLink}"
-    target="_blank"
-    onclick="event.stopPropagation()"
-  >
-    WhatsApp
-  </a>
 </div>
 
             </td>
