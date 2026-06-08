@@ -493,7 +493,7 @@ button:disabled {
 
       <div class="table-card" style="margin-top:24px;">
         <div style="padding:16px; border-bottom:1px solid #e5e7eb;">
-          <h3 style="margin:0;">Conversación del cliente</h3>
+          <h3 id="conversationTitle" style="margin:0;">Conversación del cliente</h3>
         </div>
         <div id="messagesBox" style="padding:16px;">
           Selecciona un pedido para ver la conversación.
@@ -965,6 +965,9 @@ async function loadMessages(customerId) {
         document.getElementById("messagesBox").innerHTML =
           "Selecciona un pedido para ver la conversación.";
 
+        document.getElementById("conversationTitle").textContent =
+          "Conversación del cliente";
+
         if (!Array.isArray(orders) || orders.length === 0) {
           emptyState.style.display = "block";
           document.getElementById("totalOrders").textContent = "0";
@@ -991,15 +994,20 @@ console.log("ORDER PANEL:", {
 
           const row = document.createElement("tr");
           row.style.cursor = "pointer";
-          row.onclick = () => {
+row.onclick = () => {
   document
     .querySelectorAll("#ordersTable tr")
     .forEach(r => r.classList.remove("selected-row"));
 
   row.classList.add("selected-row");
 
+  document.getElementById("conversationTitle").textContent =
+    `Conversación con ${order.full_name || "cliente"}`;
+
   loadMessages(order.customer_id);
 };
+
+
 
           row.innerHTML = `
             <td>${order.full_name || ""}</td>
