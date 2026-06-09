@@ -882,7 +882,6 @@ async function rejectPayment(orderId) {
 
 window.rejectPayment = rejectPayment;
 
-
 async function loadMessages(customerId) {
   try {
     console.log("Cargando mensajes de:", customerId);
@@ -909,7 +908,19 @@ async function loadMessages(customerId) {
 
     messages.forEach(msg => {
       const role = msg.role || msg.rol || "";
-      const content = msg.content || msg.contenido || msg.message || "";
+      const rawContent = msg.content || msg.contenido || msg.message || "";
+
+      const content = String(rawContent)
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+      const dateValue = msg.created_at || msg.createdAt || msg.fecha || null;
+
+      const messageDate = dateValue
+        ? new Date(dateValue).toLocaleString("es-MX", {
+            dateStyle: "short",
+            timeStyle: "short"
+          })
+        : "";
 
       const align = role === "user" ? "right" : "left";
       const bg = role === "user" ? "#dcfce7" : "#f3f4f6";
@@ -931,6 +942,7 @@ async function loadMessages(customerId) {
           ">
             <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">
               ${roleLabel}
+              ${messageDate ? ` · ${messageDate}` : ""}
             </div>
             <div>${content || ""}</div>
           </div>
@@ -947,6 +959,7 @@ async function loadMessages(customerId) {
       "No se pudieron cargar los mensajes.";
   }
 }
+
     async function loadOrders() {
       try {
         const res = await authFetch("/orders");
