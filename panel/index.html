@@ -1410,28 +1410,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-const orderSearchInput =
-  document.getElementById("orderSearch");
-
-const orderStatusFilter =
-  document.getElementById("orderStatusFilter");
-
-if (orderSearchInput) {
-  orderSearchInput.addEventListener(
-    "input",
-    applyOrderFilters
-  );
-}
-
-if (orderStatusFilter) {
-  orderStatusFilter.addEventListener(
-    "change",
-    applyOrderFilters
-  );
-}
-
-loginForm.addEventListener("submit", async (e) => {
-
   if (session && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
     try {
       currentAccessToken = session.access_token;
@@ -1442,6 +1420,7 @@ loginForm.addEventListener("submit", async (e) => {
       loadWhatsAppStatus();
       loadBusinessConfig();
       await loadProducts();
+
     } catch (error) {
       console.error("Error tras auth change:", error);
       setLoginError(error.message || "No se pudo cargar el panel");
