@@ -983,6 +983,7 @@ async function loadMessages(customerId) {
       "No se pudieron cargar los mensajes.";
   }
 }
+
 let allOrders = [];
 
 function renderOrders(orders) {
@@ -1105,6 +1106,41 @@ function renderOrders(orders) {
   document.getElementById("totalPending").textContent = totalPending;
 }
 
+
+function applyOrderFilters() {
+  const searchInput = document.getElementById("orderSearch");
+  const statusFilter = document.getElementById("orderStatusFilter");
+
+  const search = String(searchInput?.value || "").toLowerCase().trim();
+  const status = String(statusFilter?.value || "").toLowerCase().trim();
+
+  let filtered = [...allOrders];
+
+  if (search) {
+    filtered = filtered.filter(order => {
+      const text = [
+        order.full_name,
+        order.product,
+        order.color,
+        order.city,
+        order.payment_method,
+        order.status
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(search);
+    });
+  }
+
+  if (status) {
+    filtered = filtered.filter(order => order.status === status);
+  }
+
+  renderOrders(filtered);
+}
+
 async function loadOrders() {
   try {
     const res = await authFetch("/orders");
@@ -1154,40 +1190,6 @@ async function loadSubscription() {
   } catch (err) {
     console.error("Error cargando suscripción:", err);
   }
-}
-
-function applyOrderFilters() {
-  const searchInput = document.getElementById("orderSearch");
-  const statusFilter = document.getElementById("orderStatusFilter");
-
-  const search = String(searchInput?.value || "").toLowerCase().trim();
-  const status = String(statusFilter?.value || "").toLowerCase().trim();
-
-  let filtered = [...allOrders];
-
-  if (search) {
-    filtered = filtered.filter(order => {
-      const text = [
-        order.full_name,
-        order.product,
-        order.color,
-        order.city,
-        order.payment_method,
-        order.status
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return text.includes(search);
-    });
-  }
-
-  if (status) {
-    filtered = filtered.filter(order => order.status === status);
-  }
-
-  renderOrders(filtered);
 }
 
 async function loadWhatsAppStatus() {
@@ -1370,6 +1372,28 @@ setInterval(async () => {
     showLogin();
   }
 }
+
+const orderSearchInput =
+  document.getElementById("orderSearch");
+
+const orderStatusFilter =
+  document.getElementById("orderStatusFilter");
+
+if (orderSearchInput) {
+  orderSearchInput.addEventListener(
+    "input",
+    applyOrderFilters
+  );
+}
+
+if (orderStatusFilter) {
+  orderStatusFilter.addEventListener(
+    "change",
+    applyOrderFilters
+  );
+}
+
+
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
