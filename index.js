@@ -3271,7 +3271,7 @@ app.get("/orders", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("orders")
-      .select(`*, customers ( whatsapp )`)
+      .select(`*, customers ( phone, whatsapp )`)
       .eq("business_id", req.businessId)
       .order("created_at", { ascending: false });
 

@@ -460,6 +460,7 @@ button:disabled {
           <thead>
             <tr>
               <th>Cliente</th>
+              <th>WhatsApp</th>
               <th>Producto</th>
               <th>Color</th>
               <th>Cantidad</th>
@@ -1040,6 +1041,7 @@ function renderOrders(orders) {
 
     row.innerHTML = `
       <td>${order.full_name || ""}</td>
+      <td>${order.customers?.whatsapp || ""}</td>	
       <td>${order.product || ""}</td>
       <td>${order.color || ""}</td>
       <td>${order.quantity || ""}</td>
@@ -1121,6 +1123,7 @@ function applyOrderFilters() {
     filtered = filtered.filter(order => {
       const text = [
         order.full_name,
+        order.customers?.whatsapp,
         order.product,
         order.color,
         order.city,
@@ -1153,9 +1156,15 @@ async function loadOrders() {
 
     const orders = await res.json();
 
-    allOrders = orders;
+orders.sort(
+  (a, b) =>
+    new Date(b.created_at) -
+    new Date(a.created_at)
+);
 
-    renderOrders(allOrders);
+allOrders = orders;
+
+renderOrders(allOrders);
 
   } catch (error) {
     console.error("Error cargando pedidos:", error);
